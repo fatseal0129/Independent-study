@@ -29,6 +29,14 @@ class DetectMode:
         # 儲存偵測到物件的中心點 {id : [x,y]}
         self.center_points = {}
 
+        self.center_points_face = {}
+        self.abandoned_temp_face = {}
+        self.susLimitTime_face = 10
+
+        # 保留ID的 counts （counts作為偵測是否停留太久）
+        # 當有新物件的id被檢測到會被賦予新的id 這個作為目前id的計數器
+        self.SUSFace_id_count = 0
+
         # 保留ID的 counts （counts作為偵測是否停留太久）
         # 當有新物件的id被檢測到會被賦予新的id 這個作為目前id的計數器
         # self.id_count = 0
@@ -203,7 +211,7 @@ class DetectMode:
 
         return fix_img
 
-    def room_mode(self, origin_image):
+    def room_mode(self, origin_image, current_time):
         """
         室內開啟人臉偵測模式
         :param image: 傳進來的原始圖片 (PerFrame）
@@ -222,6 +230,10 @@ class DetectMode:
 
         perFrameDetect_Face_loc = []
 
+        # Objects boxes and ids
+        objects_bbs_ids_face = []
+        abandoned_object_face = []
+
         for r in facePerFrame:
             boxes = r.boxes
             for box in boxes:
@@ -229,21 +241,22 @@ class DetectMode:
                 x1, y1, x2, y2 = box.xyxy[0]
                 x1, y1, x2, y2 = int(x1), int(y1), int(x2), int(y2)
                 # w, h = x2 - x1, y2 - y1
-                conf = math.ceil((box.conf[0] * 100)) / 100
+
                 perFrameDetect_Face_loc.append((y1, x2, y2, x1))
+                # 這邊以下是Tracking
+                # conf = math.ceil((box.conf[0] * 100)) / 100
+                #currentArray = np.array([x1 * 4, y1 * 4, x2 * 4, y2 * 4, conf])
+                #detections = np.vstack((detections, currentArray))
 
-                currentArray = np.array([x1 * 4, y1 * 4, x2 * 4, y2 * 4, conf])
-                detections = np.vstack((detections, currentArray))
-
-        result_Tracker = self.tracker.update(detections)
-
-        for resul2t in result_Tracker:
-            x1, y1, x2, y2, Id = resul2t
-            x1, y1, x2, y2 = int(x1), int(y1), int(x2), int(y2)
-            w, h = x2 - x1, y2 - y1
-            cvzone.cornerRect(fix_img, (x1, y1, w, h), l=7, rt=2, colorR=(255, 0, 0))
-            cvzone.putTextRect(fix_img, f' {int(Id)}', (max(0, x1), max(35, y1 - 20)),
-                               scale=2, thickness=3, offset=10)
+        # result_Tracker = self.tracker.update(detections)
+        #
+        # for resul2t in result_Tracker:
+        #     x1, y1, x2, y2, Id = resul2t
+        #     x1, y1, x2, y2 = int(x1), int(y1), int(x2), int(y2)
+        #     w, h = x2 - x1, y2 - y1
+        #     cvzone.cornerRect(fix_img, (x1, y1, w, h), l=7, rt=2, colorR=(255, 0, 0))
+        #     cvzone.putTextRect(fix_img, f' {int(Id)}', (max(0, x1), max(35, y1 - 20)),
+        #                        scale=2, thickness=3, offset=10)
 
         # 找出後 在已經縮小的畫面中找出臉在哪裡並將其encoding
         encodeCurFrame = face_recognition.face_encodings(imgS, perFrameDetect_Face_loc)
@@ -259,7 +272,7 @@ class DetectMode:
                 matches = face_recognition.compare_faces(self.existFaceEncoding, encoFaceFrame, 0.4)
                 print("Matches :", matches)
                 faceDis = face_recognition.face_distance(self.existFaceEncoding, encoFaceFrame)
-                print("FaceDis :", faceDis)
+                #print("FaceDis :", faceDis)
 
                 # 找出最小distance
                 matcheIndex = np.argmin(faceDis)
@@ -269,19 +282,73 @@ class DetectMode:
                     y1, x2, y2, x1 = faceLoc
                     y1, x2, y2, x1 = y1 * 4, x2 * 4, y2 * 4, x1 * 4
                     bbox = x1, y1, x2 - x1, y2 - y1
-                    fix_img = cvzone.cornerRect(fix_img, bbox, rt=0)
-                    cvzone.putTextRect(fix_img, f'{name}conf{faceDis}', (x1 - 50, y1 - 50))
                 else:
-                    """
-                    這邊之後要改成符合條件的可疑人物要發送警報
-                    """
                     name = "SUS"
                     y1, x2, y2, x1 = faceLoc
                     y1, x2, y2, x1 = y1 * 4, x2 * 4, y2 * 4, x1 * 4
+                    w, h = x2 - x1, y2 - y1
                     bbox = x1, y1, x2 - x1, y2 - y1
-                    fix_img = cvzone.cornerRect(fix_img, bbox, rt=0)
-                    cvzone.putTextRect(fix_img, f'{name}conf{faceDis}', (x1 - 50, y1 - 50))
 
-        cv2.putText(fix_img, "Press Q to Exit", (40, 90), cv2.FONT_HERSHEY_COMPLEX, 0.7, (0, 0, 0))
+                    # 中心點
+                    cx = (x1 + x1 + w) / 2
+                    cy = (y1 + y1 + h) / 2
 
-        return fix_img
+                    # 檢查物體是否已經被檢測到
+                    same_object_detected = False
+                    for id, pt in self.center_points_face.items():
+                        # update the center point
+                        print(f'center_points.items id {id} pt {pt}')
+                        self.center_points_face[id] = (cx, cy)
+
+                        objects_bbs_ids_face.append([x1, y1, w, h, id])
+                        same_object_detected = True
+
+                        #   Add same object to the abandoned_temp dictionary. if the object is
+                        #   still in the temp dictionary for certain threshold count then
+                        #   the object will be considered as abandoned object
+                        if id in self.abandoned_temp_face:
+                            # if self.abandoned_temp[id] > 100:
+                            if (datetime.now() - self.abandoned_temp_face[id]).seconds > self.susLimitTime_face:
+                                abandoned_object_face.append([id, x1, y1, w, h])
+                            else:
+                                # Increase count for the object
+                                # self.abandoned_temp[id] += 1
+                                print(
+                                    f'now the object has exist for: {(datetime.now() - self.abandoned_temp_face[id]).seconds} seconds')
+                        break
+
+                    if same_object_detected is False:
+                        self.center_points_face[self.SUSFace_id_count] = (cx, cy)
+                        self.abandoned_temp_face[self.SUSFace_id_count] = current_time
+                        objects_bbs_ids_face.append([x1, y1, w, h, self.SUSFace_id_count])
+                        self.SUSFace_id_count += 1
+
+                # Clean the dictionary by center points to remove IDS not used anymore
+                new_center_points = {}
+                abandoned_temp_2 = {}
+
+                for obj_bb_id in objects_bbs_ids_face:
+                    print(f'now obj__bb_id is {obj_bb_id}')
+                    _, _, _, _, object_id = obj_bb_id
+                    center = self.center_points_face[object_id]
+
+                    new_center_points[object_id] = center
+
+                    if object_id in self.abandoned_temp_face:
+                        temp_time = self.abandoned_temp_face[object_id]
+                        abandoned_temp_2[object_id] = temp_time
+
+                print(f'now new_center_points is {new_center_points}')
+                print(f'now ab is {abandoned_temp_2}')
+                # Update dictionary with IDs not used removed
+                self.center_points_face = new_center_points.copy()
+                self.abandoned_temp_face = abandoned_temp_2.copy()
+
+                fix_img = cvzone.cornerRect(fix_img, bbox, rt=0)
+                cvzone.putTextRect(fix_img, f'{name}', (x1 - 50, y1 - 50))
+
+        cvzone.putTextRect(fix_img, datetime.now().strftime('%y-%m-%d_%H:%M:%S'), (20, 50), scale=1,
+                           thickness=1,
+                           colorT=(255, 255, 255), colorR=(0, 0, 0), font=cv2.FONT_HERSHEY_COMPLEX)
+
+        return fix_img, abandoned_object_face

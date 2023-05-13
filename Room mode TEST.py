@@ -1,5 +1,6 @@
 import cv2
-import lightweight_detectmode
+#import lightweight_detectmode
+from Detect import dm
 import datetime
 import Service.AlertService
 from vidgear.gears import CamGear
@@ -13,7 +14,7 @@ cap = CamGear(source=0, **options).start()
 
 cv2.startWindowThread()
 
-dm = lightweight_detectmode.DetectMode()
+#dm = lightweight_detectmode.DetectMode()
 
 alert = Service.AlertService.AlertSUS()
 abandoned_objects = []
@@ -24,7 +25,6 @@ while True:
     current_time = datetime.datetime.now()
     #predict, abandoned_objects = dm.outdoor_mode(img, current_time)
     predict, abandoned_objects = dm.room_mode(img, current_time)
-
 
     if len(abandoned_objects) > 0:
         if isSusTime is False:

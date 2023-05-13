@@ -20,4 +20,7 @@ import Service.DatabaseService as DBservice
 # import datetime
 
 db = DBservice.DatabaseService()
-db.DeleteAllSUS()
+if db.DeleteAllSUS():
+    print("YES!")
+else:
+    print("shit BRO")

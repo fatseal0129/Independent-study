@@ -178,7 +178,7 @@ class DatabaseService:
         """
         sus = []
         for path in self.col_Amogus.find():
-            sus.append(path['VideoPath'])
+            sus.append(path['videoPath'])
         return sus
 
     def getAllImageNames(self):
@@ -319,22 +319,39 @@ class DatabaseService:
                 print("刪除失敗！ 找不到檔案")
                 return False
 
+    def DeleteAllSUS(self):
+        """
+        刪除所有可疑人士圖片資料
+        :return: 是否刪除成功
+        """
+        i = 0
+        vidPath = self.getAllSUSVideoPath()
+        vidFilename = self.getAllSUSVideoNames()
+
+        imgPath = self.getAllSUSImagePath()
+        imgFilename = self.getAllSUSImageNames()
+
+        for vpath, vfile, ipath, ifile in zip(vidPath, vidFilename, imgPath, imgFilename):
+            if self.fileService.DeleteImage(vpath, vfile) and self.fileService.DeleteImage(ipath, ifile):
+                if self.col_Amogus.delete_one({"vidFilename": {"$regex": vfile}}):
+                    print("刪除成功！")
+                    i += 1
+                else:
+                    print(f'失敗！ 找不到資料庫資料！{vfile}')
+                    return False
+            else:
+                print(f'失敗！ 找不到檔案！{vfile} 或{ifile}')
+                return False
+
+        print(f'{i}筆資料被刪除')
+        return True
+
     def DeleteAllImagePath(self):
         """
         刪除所有圖片資料
         :return: 是否刪除成功
         """
         x = self.col_ImagePath.delete_many({})
-        print("刪除成功！")
-        print(x.deleted_count, "筆資料被刪除")
-        return True
-
-    def DeleteAllSUS(self):
-        """
-        刪除所有可疑人士圖片資料
-        :return: 是否刪除成功
-        """
-        x = self.col_Amogus.delete_many({})
         print("刪除成功！")
         print(x.deleted_count, "筆資料被刪除")
         return True
