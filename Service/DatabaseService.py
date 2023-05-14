@@ -51,7 +51,7 @@ class DatabaseService:
         return result.acknowledged
 
     def addAmogus(self, Id:int, currentTime, videoPath:str = "", imagePath:str = "",
-                  vidFilename:str = "", imgFilename:str= ""):
+                  vidFilename:str = "", imgFilename:str= "") -> bool:
         """
         新增可疑人士
         :param Id: ID
@@ -72,6 +72,7 @@ class DatabaseService:
         }
         result = self.col_Amogus.insert_one(data)
         print("新增完顯示結果：", result.acknowledged)
+        return result.acknowledged
 
     def getAllSUS(self):
         """
