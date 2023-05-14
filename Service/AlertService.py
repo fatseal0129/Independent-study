@@ -10,11 +10,11 @@ class AlertSUS:
         self.db = DBservice.DatabaseService()
         self.ID = 1
 
-    def susWriteFrame(self, frame, Start_recording_time, object):
-        _, x2, y2, w2, h2 = object
+    def susWriteFrame(self, frame, Start_recording_time):
+        #_, x2, y2, w2, h2 = object
         writeFrame = frame
-        cv2.putText(writeFrame, "SUS", (x2, y2 - 10), cv2.FONT_HERSHEY_PLAIN, 1.2, (0, 0, 255), 2)
-        cv2.rectangle(writeFrame, (x2, y2), (x2 + w2, y2 + h2), (0, 0, 255), 2)
+        # cv2.putText(writeFrame, "SUS", (x2, y2 - 10), cv2.FONT_HERSHEY_PLAIN, 1.2, (0, 0, 255), 2)
+        # cv2.rectangle(writeFrame, (x2, y2), (x2 + w2, y2 + h2), (0, 0, 255), 2)
         self.writerList[Start_recording_time].write(writeFrame)
 
     def createWriter(self, current_time, frame):
