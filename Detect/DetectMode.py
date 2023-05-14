@@ -187,41 +187,43 @@ class DetectMode:
         :return: 偵測完的圖片 (PerFrame)
         """
         fix_img = origin_image
-        perFrame = self.model_PersonDetectOnly(origin_image, stream=True)
-        self.model_PersonDetectOnly.predict()
+        #perFrame = self.model_PersonDetectOnly(origin_image, stream=True)
 
         # 傳入np array(x1,y1,x2,y2,score) 回傳ID number與np array
-        detections = np.empty((0, 5))
+        #detections = np.empty((0, 5))
 
-        for frame in perFrame:
-            boxes = frame.boxes
-            for box in boxes:
-                # 取得座標
-                x1, y1, x2, y2 = box.xyxy[0]
+        # for frame in perFrame:
+        #     boxes = frame.boxes
+        #     for box in boxes:
+        #         # 取得座標
+        #         x1, y1, x2, y2 = box.xyxy[0]
+        #
+        #         x1, y1, x2, y2 = int(x1), int(y1), int(x2), int(y2)
+        #
+        #         conf = math.ceil((box.conf[0] * 100)) / 100
+        #
+        #         # 取得classID
+        #         classId = int(box.cls[0])
+        #
+        #         currentClass = self.classNames_PersonDetectOnly[classId]
+        #
+        #         # print(currentClass, conf)
+        #         if currentClass == "person" and conf > 0.35:
+        #             currentArray = np.array([x1, y1, x2, y2, conf])
+                    #detections = np.vstack((detections, currentArray))
 
-                x1, y1, x2, y2 = int(x1), int(y1), int(x2), int(y2)
+        # result_Tracker = self.tracker.update(detections)
+        #
+        # for resul2t in result_Tracker:
+        #     x1, y1, x2, y2, Id = resul2t
+        #     x1, y1, x2, y2 = int(x1), int(y1), int(x2), int(y2)
+        #     w, h = x2 - x1, y2 - y1
+        #     cvzone.cornerRect(fix_img, (x1, y1, w, h), l=7, rt=2, colorR=(255, 0, 0))
+        #     cvzone.putTextRect(fix_img, f' {int(Id)}', (max(0, x1), max(35, y1 - 20)),
+        #                        scale=2, thickness=3, offset=10)
 
-                conf = math.ceil((box.conf[0] * 100)) / 100
-
-                # 取得classID
-                classId = int(box.cls[0])
-
-                currentClass = self.classNames_PersonDetectOnly[classId]
-
-                # print(currentClass, conf)
-                if currentClass == "person" and conf > 0.35:
-                    currentArray = np.array([x1, y1, x2, y2, conf])
-                    detections = np.vstack((detections, currentArray))
-
-        result_Tracker = self.tracker.update(detections)
-
-        for resul2t in result_Tracker:
-            x1, y1, x2, y2, Id = resul2t
-            x1, y1, x2, y2 = int(x1), int(y1), int(x2), int(y2)
-            w, h = x2 - x1, y2 - y1
-            cvzone.cornerRect(fix_img, (x1, y1, w, h), l=7, rt=2, colorR=(255, 0, 0))
-            cvzone.putTextRect(fix_img, f' {int(Id)}', (max(0, x1), max(35, y1 - 20)),
-                               scale=2, thickness=3, offset=10)
+        cvzone.putTextRect(fix_img, datetime.now().strftime('%y-%m-%d_%H:%M:%S'), (20, 50), scale=1, thickness=1,
+                           colorT=(255, 255, 255), colorR=(0, 0, 0), font=cv2.FONT_HERSHEY_COMPLEX)
 
         return fix_img
 
