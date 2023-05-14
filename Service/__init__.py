@@ -1,9 +1,9 @@
 import Service.DatabaseService
 import Service.FileService
-import AddUserFaces
 import Service.AlertService
+import Service.CameraService
 
 DBService = DatabaseService.DatabaseService()
 FileService = FileService
-AddUserFaces = AddUserFaces
 AlertService = AlertService
+CameraManager = CameraService.CameraManager()
