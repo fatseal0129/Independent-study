@@ -13,7 +13,7 @@ class Camera(threading.Thread):
         # 攝影機連接
         self.url = url
         # 攝影機初始模式
-        #self.mode = initial_mode
+        self.mode = initial_mode
 
         self.online = False
         self.capture = None
@@ -54,7 +54,18 @@ class Camera(threading.Thread):
         return True
 
     def getStatus(self):
+        """
+        攝影機是否上線(驗證成功並可以使用)
+        :return: bool
+        """
         return self.online
+
+    def getMode(self):
+        """
+        取得攝影機目前的模式
+        :return: 模式 -> str
+        """
+        return self.mode
 
     def run(self):
         while True:
