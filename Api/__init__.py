@@ -1,4 +1,4 @@
-import Api.api
+import Api.api_frontend
 import models
 
 apiService = api

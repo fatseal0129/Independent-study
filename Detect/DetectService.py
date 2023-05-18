@@ -1,69 +1,143 @@
-# import threading
+import base64
+import threading
+from collections import deque
+from enum import Enum, unique
+from Detect import dm
+import cv2
+import Service.AlertService
+import numpy as np
+
+
+# 這邊可以修改或是增加模式
+@unique
+class Mode(str, Enum):
+    Outdoor_Mode = "outdoor"
+    Normal_Mode = "normal"
+    Room_Mode = "room"
+    Room_Outside_Mode = "room_outside"
+
 class DetectManager:
     def __init__(self):
-        self.CameraList = {}
+        # 這邊應當要與send-serverService同步
+        self.CameraModeList = {}
+        # 儲存Camera是否有暫停
+        self.CameraState = {}
 
-    def getCleanCameraFrame(self, name):
+        ## 之後要實作Loading資料庫
+
+
+        self.alert = Service.AlertService.AlertSUS()
+
+        self.isSusTime_outdoor = False
+        self.recordingTime_outdoor = 0
+
+        self.isSusTime_Room = False
+        self.recordingTime_Room = 0
+
+        self.isSusTime_Room_outside = False
+        self.recordingTime_Room_outside = 0
+
+    def addDetectCam(self, name, mode, status):
         """
-        取得單一攝影機的Frame
-        :param name: 名字/場地
+        把Camera加入到Detect的List
+        :param name:名字
+        :param mode:模式
+        :param status:是否為暫停
         :return:
         """
-        return self.CameraList[name].getFrame()
+        self.CameraModeList[name] = mode
+        self.CameraState[name] = status
 
-    def getPredictedCameraFrame(self, name):
-        """
-        取得已經預測完的frame
-        :param name:
-        :return:
-        """
-        frame = self.CameraList[name]
+    def Detect(self, data, current_time):
+        temp_Dict = {}
+        for name, raw_frame in data.items():
+            # 可能會出錯 這裡要小心
+            predict = np.empty([1, 1, 1])
+            frame = base64.b64encode(raw_frame)
+            mode = self.CameraModeList[name]
 
-    def getStatus(self, name):
-        return self.CameraList[name].getStatus()
+            if mode == Mode.Room_Mode:
+                predict = self.RoomMode(frame, current_time)
 
-    def resumeCamera(self, name):
-        """
-        恢復單一攝影機的運行
-        :param name: 名字/場地
-        :return:
-        """
-        self.CameraList[name].resume()
+            elif mode == Mode.Normal_Mode:
+                predict = self.NormalMode(frame)
 
-    def pauseCamera(self, name):
-        """
-        暫停單一攝影機的運行
-        :param name: 名字/場地
-        :return:
-        """
-        self.CameraList[name].pause()
+            elif mode == Mode.Outdoor_Mode:
+                predict = self.OutDoorMode(frame, current_time)
 
-    def createCamera(self, url, name, initial_mode) -> bool:
-        """
-        創建一個新的攝影機，剛創建的攝影機都會是暫停狀態
-        :param url: 連接網址
-        :param name: 名字/場地
-        :param initial_mode: 剛開始的模式
-        :return:
-        """
-        try:
-            print(f'create Camera name: {name}, url: {url}')
-            # 新增影片Writer
-            self.CameraList[name] = cam.Camera(url, initial_mode)
-            # 開啟攝影機
-            self.CameraList[name].start()
-            return True
-        except Exception:
-            return False
+            elif mode == Mode.Room_Outside_Mode:
+                predict = self.RoomOutsideMode(frame, current_time)
 
-    def cleanCamera(self, name):
-        """
-        刪除單一攝影機
-        :param name:名字/場地
-        :return:
-        """
-        try:
-            self.CameraList[name].cleanUP()
-            return True
-        except Exception:
-            return False
+            else:
+                print(f'Mode not exist! {name} using Normal mode')
+                predict = self.NormalMode(frame)
+
+            # 要實作PUSH至RTSP SERVER
+            # temp_Dict[name] = base64.b64decode(predict)
+        #return temp_Dict
+
+
+    def RoomMode(self, frame, current_time):
+        predict, abandoned_objects = dm.room_mode(frame, current_time)
+
+        if len(abandoned_objects) > 0:
+            if self.isSusTime_Room is False:
+                self.alert.createWriter(current_time, frame)
+                self.recordingTime_Room = current_time
+                self.isSusTime_Room = True
+        else:
+            if self.isSusTime_Room:
+                self.isSusTime_Room = False
+                self.alert.cleanSingle(self.recordingTime_Room)
+            self.recordingTime_Room = current_time
+
+        for objects in abandoned_objects:
+            #id, x2, y2, w2, h2 = objects
+            if self.isSusTime_Room:
+                self.alert.susWriteFrame(frame, self.recordingTime_Room)
+            cv2.putText(predict, f'FIND SUS! Recording...', (500, 50), cv2.FONT_HERSHEY_COMPLEX, 1.2, (34, 34, 178),
+                        lineType=cv2.LINE_AA)
+        return predict
+
+
+    def OutDoorMode(self, frame, current_time):
+        predict, abandoned_objects = dm.outdoor_mode(frame, current_time)
+
+        if len(abandoned_objects) > 0:
+            if self.isSusTime_outdoor is False:
+                self.alert.createWriter(current_time, frame)
+                self.recordingTime_outdoor = current_time
+                self.isSusTime_outdoor = True
+        else:
+            if self.isSusTime_outdoor:
+                self.isSusTime_outdoor = False
+                self.alert.cleanSingle(self.recordingTime_outdoor)
+            self.recordingTime_outdoor = current_time
+
+        for objects in abandoned_objects:
+            # id, x2, y2, w2, h2 = objects
+            if self.isSusTime_outdoor:
+                self.alert.susWriteFrame(frame, self.recordingTime_outdoor)
+            cv2.putText(predict, f'FIND SUS! Recording...', (500, 50), cv2.FONT_HERSHEY_COMPLEX, 1.2, (34, 34, 178),
+                        lineType=cv2.LINE_AA)
+
+        return predict
+
+    def NormalMode(self, frame):
+        return dm.normal_mode(frame)
+
+    def RoomOutsideMode(self, frame, current_time):
+        predict, abandoned_objects = dm.room_mode_goOutside(frame, current_time)
+
+        if len(abandoned_objects) > 0 and (self.isSusTime_Room_outside is False):
+            self.recordingTime_Room_outside = current_time
+            self.alert.createWriter(current_time, frame)
+            self.isSusTime_Room_outside = True
+        elif (current_time - self.recordingTime_Room_outside).seconds > 10:
+            self.isSusTime_Room_outside = False
+
+        if self.isSusTime_Room_outside:
+            self.alert.susWriteFrame(frame, self.recordingTime_Room_outside)
+            cv2.putText(predict, f'FIND SUS! Recording...', (500, 50), cv2.FONT_HERSHEY_COMPLEX, 1.2, (34, 34, 178),
+                        lineType=cv2.LINE_AA)
+        return predict

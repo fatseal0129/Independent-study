@@ -8,11 +8,8 @@ from fastapi.responses import StreamingResponse
 from websockets.exceptions import ConnectionClosed
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
-#from Detect import dm
-import Service
-from Service import CameraManager
+from Service import CameraManager, ServerManager, FileService
 from pydantic import BaseModel
-import cv2
 
 app = FastAPI()
 app.add_middleware(
@@ -25,13 +22,12 @@ app.add_middleware(
 
 # 新增攝影機
 @app.post('/camera/add')
-async def AddCamera(info: Cameta_info):
+async def createCamera(info: Cameta_info):
     print(info.url)
     result = CameraManager.createCamera(url=0, name=info.name, initial_mode=info.init_mode)
+    # 若 result = TRUE 就呼叫sendServer來建立Detect服務
     if result:
-        return {"message": "Success!"}
-    else:
-        return {"message": "Fail!"}
+        ServerManager.createConnect_to_Server(info.name, info.init_mode, True)
 
 # 刪除攝影機
 @app.delete('/camera/delete')
@@ -45,15 +41,13 @@ async def DeleteCamera(name: str):
 # 拿取全部可疑人士
 @app.get('/sus/get/all')
 async def getALLSUSMember():
-
     pass
-
 
 # 顯示成員
 @app.get('/member/get')
 async def getAllMember():
     allMember = []
-    avatarList, nameList = Service.FileService.loadingKnowAvatar()
+    avatarList, nameList = FileService.loadingKnowAvatar()
     for avatar, name in zip(avatarList, nameList):
         encode = base64.b64encode(avatar)
         allMember.append({
@@ -69,7 +63,7 @@ async def addMember(response):
     image = base64.b64decode(response['Image'])
     avatar = base64.b64decode(response['Avatar'])
     name = response['Name']
-    if Service.FileService.saveImage(image, name, avatar):
+    if FileService.saveImage(image, name, avatar):
         return {"message": "success!"}
     else:
         return {"message": "Fail!"}

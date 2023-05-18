@@ -9,15 +9,18 @@ import datetime
 
 class sendService:
     def __init__(self):
-        # super(sendService, self).__init__()
         # 這邊應當要與CameraService, DetectService同步
         self.CameraModeList = {}
         # 儲存Camera是否有暫停
         self.CameraState = {}
 
-        self.camservice = Service.CameraService.CameraManager()
+        self.camservice = None
 
         self.camNum = 0
+
+        # 實作loadCamera 之後資料都要與資料庫對接
+        ####
+        ####
 
         # 之後要改的
         self.wsurl = "ws://127.0.0.1:8000/ws"
@@ -31,7 +34,7 @@ class sendService:
         print("啟動websocket連接...")
         self.ws.run_forever()
 
-    def createConnect_to_Server(self, name, mode, state):
+    def createConnect_to_Server(self, name:str, mode:str, state:bool):
         data = {
             "name": name,
             "mode": mode,
@@ -66,6 +69,7 @@ class sendService:
         print("####### on_close #######")
 
     def on_open(self, ws):
+        self.camservice = Service.CameraService.CameraManager()
         print("與Server連接成功！ 開啟傳送通道...")
         # 與server的thread
         connection_server = threading.Thread(target=self.sendmsg_server)
@@ -86,6 +90,9 @@ class sendService:
                 # 這時資料會裝著 {camName : frame(b64)}
                 self.ws.send(str(cameraList))
                 self.ws.send(str(current_time))
+
+    def loadCamera(self):
+        pass
 
     def changeCameraMode(self, name, changed_mode):
         pass

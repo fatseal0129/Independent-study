@@ -27,16 +27,6 @@ while True:
     # predict, abandoned_objects = dm.outdoor_mode(img, current_time)
     predict, abandoned_objects = dm.room_mode_goOutside(img, current_time)
 
-    # if len(abandoned_objects) > 0:
-    #     if isSusTime is False:
-    #         #alert.createWriter(current_time, img)
-    #         Start_recording_time = current_time
-    #         isSusTime = True
-    # else:
-    #     if isSusTime and (datetime.datetime.now() - Start_recording_time).seconds > 5:
-    #         isSusTime = False
-    #         #alert.cleanSingle(Start_recording_time)
-    #     Start_recording_time = current_time
     if len(abandoned_objects) > 0 and (isSusTime is False):
         Start_recording_time = current_time
         alert.createWriter(current_time, img)

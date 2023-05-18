@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Live Streaming</title>
+    </head>
+    <body>
+        <button id="live">GETALIVE</button>
+        <img id="frame" src="">
+        <script>
+            const evtSource = new EventSource("http://localhost:8000/getVideo", {withCredentials: false});
+            let image = document.getElementById("frame");
+            let gbtn = document.getElementById("live")
+
+
+
+            gbtn.addEventListener("click", (event) =>{
+              fetch("http://localhost:8000/keep-alive").then(function (request){
+                  return request.text()
+              }).then(function (re){
+                  console.log(re)
+              })
+            })
+
+            image.onload = function(){
+                URL.revokeObjectURL(this.src); // release the blob URL once the image is loaded
+            }
+
+            evtSource.addEventListener('message', function(e) {
+                // console.log(e.data)
+                let blob = new Blob([e.data.replace("\n","")],{'type':"image/jpeg"});
+                image.src = URL.createObjectURL(blob);
+            }, false);
+
+            // evtSource.onmessage = function(event) {
+            //     let blob = new Blob(event.data,{'type':"image/jpeg"});
+            //     console.log(event.data)
+            //     image.src = URL.createObjectURL(blob);
+            // }
+
+        </script>
+    </body>
+</html>
