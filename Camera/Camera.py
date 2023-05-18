@@ -53,7 +53,14 @@ class Camera(threading.Thread):
         cap.release()
         return True
 
-    def getStatus(self):
+    def getStatus_paused(self) -> bool:
+        """
+        攝影機目前是否為暫停狀態
+        :return: bool
+        """
+        return self.paused
+
+    def getStatus_online(self) -> bool:
         """
         攝影機是否上線(驗證成功並可以使用)
         :return: bool
