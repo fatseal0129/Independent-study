@@ -1,4 +1,4 @@
-
+import Box.Camera.Camera as cam
 class CameraManager:
     def __init__(self):
         self.CameraList = {}

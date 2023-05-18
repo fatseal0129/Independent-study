@@ -1,15 +1,11 @@
-import threading
 import base64
-import time
+# import time
 from models import Cameta_info
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
-
-from fastapi.responses import StreamingResponse
-from websockets.exceptions import ConnectionClosed
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
-from Service import CameraManager, ServerManager
-from pydantic import BaseModel
+from Box.Service import CamService
+import Box.Service.SendServerService as sendService
 
 app = FastAPI()
 app.add_middleware(
@@ -20,19 +16,23 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# 創建Manager
+camManager = CamService.CameraManager()
+serverManager = sendService.sendService()
+
 # 新增攝影機
 @app.post('/camera/add')
 async def createCamera(info: Cameta_info):
     print(info.url)
-    result = CameraManager.createCamera(url=0, name=info.name, initial_mode=info.init_mode)
+    result = camManager.createCamera(url=0, name=info.name, initial_mode=info.init_mode)
     # 若 result = TRUE 就呼叫sendServer來建立Detect服務
     if result:
-        ServerManager.createConnect_to_Server(info.name, info.init_mode, True)
+        serverManager.createConnect_to_Server(info.name, info.init_mode, True)
 
 # 刪除攝影機
 @app.delete('/camera/delete')
 async def DeleteCamera(name: str):
-    result = CameraManager.cleanCamera(name)
+    result = camManager.cleanCamera(name)
     if result:
         return {"message": "Success!"}
     else:
@@ -46,27 +46,31 @@ async def getALLSUSMember():
 # 顯示成員
 @app.get('/member/get')
 async def getAllMember():
-    allMember = []
-    avatarList, nameList = FileService.loadingKnowAvatar()
-    for avatar, name in zip(avatarList, nameList):
-        encode = base64.b64encode(avatar)
-        allMember.append({
-            "Name": name,
-            "Avatar": encode
-        })
-    return allMember
+    # 要重做 與SERVER溝通
+    pass
+    # allMember = []
+    # avatarList, nameList = FileService.loadingKnowAvatar()
+    # for avatar, name in zip(avatarList, nameList):
+    #     encode = base64.b64encode(avatar)
+    #     allMember.append({
+    #         "Name": name,
+    #         "Avatar": encode
+    #     })
+    # return allMember
 
 
 # 新增成員
 @app.post("/member/add")
 async def addMember(response):
-    image = base64.b64decode(response['Image'])
-    avatar = base64.b64decode(response['Avatar'])
-    name = response['Name']
-    if FileService.saveImage(image, name, avatar):
-        return {"message": "success!"}
-    else:
-        return {"message": "Fail!"}
+    # 要重做 與SERVER溝通
+    pass
+    # image = base64.b64decode(response['Image'])
+    # avatar = base64.b64decode(response['Avatar'])
+    # name = response['Name']
+    # if FileService.saveImage(image, name, avatar):
+    #     return {"message": "success!"}
+    # else:
+    #     return {"message": "Fail!"}
 
 # 編輯成員
 @app.post('/member/edit')

@@ -7,9 +7,9 @@ from fastapi.responses import StreamingResponse
 from websockets.exceptions import ConnectionClosed
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
-from Detect import dm
-import Service
-from Service import CameraManager
+# from Detect import dm
+# import Service
+# from Service import CameraManager
 import cv2
 from vidgear.gears import CamGear
 
