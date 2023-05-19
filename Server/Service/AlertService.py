@@ -1,13 +1,12 @@
 import cv2
 from vidgear.gears import WriteGear
 import os
-import Service.DatabaseService as DBservice
+from Server.Service import DB
 
 
 class AlertSUS:
     def __init__(self):
         self.writerList = {}
-        self.db = DBservice.DatabaseService()
         self.ID = 1
 
     def susWriteFrame(self, frame, Start_recording_time):
@@ -21,10 +20,10 @@ class AlertSUS:
         output_params = {"-fourcc": "mp4v", "-fps": 20}
         fix_current_time = current_time.strftime('%y-%m-%d_%H:%M:%S')
 
-        output_vid_path = os.path.join(os.getcwd(), 'SUSPeople', 'Video')
+        output_vid_path = os.path.join(os.path.dirname(os.getcwd()), 'FileData', 'SUSPeople', "Video")
         output_vid_name = f'SUSVideo-{fix_current_time}.mp4'
 
-        output_img_path = os.path.join(os.getcwd(), 'SUSPeople', 'Image')
+        output_img_path = os.path.join(os.path.dirname(os.getcwd()), 'FileData', 'SUSPeople', 'Image')
         output_img_name = f'SUSImage-{fix_current_time}.png'
 
         print(f'create Writer id: {self.ID}, name: {output_vid_name}')
@@ -35,7 +34,7 @@ class AlertSUS:
         cv2.imwrite(os.path.join(output_img_path, output_img_name), frame)
 
         # 資料庫新增
-        result = self.db.addAmogus(self.ID, fix_current_time, output_vid_path, output_img_path,
+        result = DB.addAmogus(self.ID, fix_current_time, output_vid_path, output_img_path,
                                    output_vid_name, output_img_name)
         if result:
             print("新增嫌疑人資料庫成功！")

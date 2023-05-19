@@ -11,8 +11,7 @@
 
 # connect to mongoDB
 import pymongo
-import Service
-import Service.FileService
+from Server.Service import FileManager
 
 class DatabaseService:
     def __init__(self):
@@ -22,31 +21,31 @@ class DatabaseService:
         # 新增一個database 名稱為 CamDB，若已存在則是指向的意思
         self.camDB = self.mongoclient["CamDB"]
 
-        # 新增一個collection，名稱為ImagePath，用來存放圖片網址，若已存在則是指向的意思
-        self.col_ImagePath = self.camDB["ImagePath"]
+        # 新增一個collection，名稱為Member，用來存放圖片網址，若已存在則是指向的意思
+        self.col_Member = self.camDB["Member"]
 
         # 新增一個collection，名稱為Amogus，用來存放可疑人士，若已存在則是指向的意思
         self.col_Amogus = self.camDB["Amogus"]
 
-        # 新增fileService
-        self.fileService = Service.FileService
-
-    def addImagePathToDatabase(self, avatarpath: str = "", imagepath: str = "", imagename: str = "",
-                               avatarname: str = "") -> bool:
+    def addMemberToDatabase(self, name: str, imgfilename: str, avatarfilename: str,
+                            avatarpath: str, imagepath: str) -> bool:
         """
         新增人/虛擬頭像的圖片資料(路徑與名字)到database
         :param avatarpath: 存放虛擬頭像的路徑
         :param imagepath: 存放人臉圖片的路徑
-        :param imagename: 人臉檔名
-        :param avatarname: 虛擬頭像檔名
+        :param name: 人名
+        :param avatarfilename: 虛擬頭像檔名
+        :param imgfilename: 真實人臉檔名
         :return: 是否新增成功
 
         """
-        data = {"imagePath": imagepath,
-                "avatarPath": avatarpath,
-                "imagename": imagename,
-                "avatarname": avatarname}
-        result = self.col_ImagePath.insert_one(data)
+        data = {"name": name,
+                "imgfilename": imgfilename,
+                "avatarfilename": avatarfilename,
+                "avatarpath": avatarpath,
+                "imagepath": imagepath}
+
+        result = self.col_Member.insert_one(data)
         print("新增完顯示結果：", result.acknowledged)
         return result.acknowledged
 
@@ -84,27 +83,27 @@ class DatabaseService:
             imposter.append(sus)
         return imposter
 
-    def getAllPersonData(self):
+    def getAllMemberData(self):
         """
         取得所有家庭成員資料
         :return:
         """
         data = []
-        for person in self.col_ImagePath.find():
+        for person in self.col_Member.find():
             data.append(person)
         return data
 
-    def getAvatarPath(self, name: str = ''):
+    def getMemberAvatarPath(self, name: str = ''):
         """
         取得單一頭像圖片的路徑
-        :param name: avatar名字
+        :param name: 名字
         :return: 路徑，若沒有則回傳空字串
         """
-        path = self.col_ImagePath.find_one({"avatarname": {"$regex": name}})
+        path = self.col_Member.find_one({"name": {"$regex": name}})
         if path is None:
             return ''
         else:
-            return path['avatarPath']
+            return path['avatarpath']
 
     def getSUSImagePath(self, current_time):
         """
@@ -130,17 +129,17 @@ class DatabaseService:
         else:
             return sus['videoPath']
 
-    def getImagePath(self, name: str = ''):
+    def getMemberImagePath(self, name: str = ''):
         """
         取得單一人臉圖片的路徑
         :param name: image名字
         :return: 路徑，若沒有則回傳空字串
         """
-        path = self.col_ImagePath.find_one({"imagename": {"$regex": name}})
+        path = self.col_Member.find_one({"name": {"$regex": name}})
         if path is None:
             return ''
         else:
-            return path['imagePath']
+            return path['imagepath']
 
     def getAllAvatarPath(self):
         """
@@ -148,19 +147,29 @@ class DatabaseService:
         :return: 存放所有虛擬圖片路徑的List
         """
         paths = []
-        for path in self.col_ImagePath.find():
-            paths.append(path['avatarPath'])
+        for path in self.col_Member.find():
+            paths.append(path['avatarpath'])
         return paths
 
-    def getAllImagePath(self):
+    def getAllMemberImagePath(self):
         """
         取得所有人臉圖片的路徑
         :return: 存放所有人臉圖片路徑的List
         """
         paths = []
-        for path in self.col_ImagePath.find():
-            paths.append(path['imagePath'])
+        for path in self.col_Member.find():
+            paths.append(path['imagepath'])
         return paths
+
+    def getAllMemberNames(self):
+        """
+        取得所有成員人名
+        :return: 存放所有人名的List
+        """
+        names = []
+        for name in self.col_Member.find():
+            names.append(name['name'])
+        return names
 
     def getAllSUSImagePath(self):
         """
@@ -182,24 +191,24 @@ class DatabaseService:
             sus.append(path['videoPath'])
         return sus
 
-    def getAllImageNames(self):
+    def getAllMemberImageFileNames(self):
         """
         取得所有人臉照片的檔名
         :return: 存放所有檔名的List
         """
         names = []
-        for name in self.col_ImagePath.find():
-            names.append(name['imagename'])
+        for name in self.col_Member.find():
+            names.append(name['imgfilename'])
         return names
 
-    def getAllAvatarNames(self):
+    def getAllMemberAvatarFileNames(self):
         """
         取得所有虛擬頭像照片的檔名
         :return: 存放所有頭像檔名的List
         """
         names = []
-        for name in self.col_ImagePath.find():
-            names.append(name['avatarname'])
+        for name in self.col_Member.find():
+            names.append(name['avatarfilename'])
         return names
 
     def getAllSUSVideoNames(self):
@@ -222,29 +231,29 @@ class DatabaseService:
             names.append(name['imgFilename'])
         return names
 
-    def getImageName(self, name):
+    def getMemberImageFileName(self, name):
         """
         取得單一人臉檔案名稱
         :param name: image檔名
         :return: 檔案名稱
         """
-        filename = self.col_ImagePath.find_one({"imagename": {"$regex": name}})
+        filename = self.col_Member.find_one({"name": {"$regex": name}})
         if filename is None:
             return ''
         else:
-            return filename['imagename']
+            return filename['imgfilename']
 
-    def getAvatarName(self, name):
+    def getMemberAvatarFileName(self, name):
         """
         取得單一虛擬頭像檔案名稱
         :param name: avatar檔名
         :return: 檔案名稱
         """
-        filename = self.col_ImagePath.find_one({"avatarname": {"$regex": name}})
+        filename = self.col_Member.find_one({"name": {"$regex": name}})
         if filename is None:
             return ''
         else:
-            return filename['avatarname']
+            return filename['avatarfilename']
 
     def getSUSVideoName(self, current_time):
         """
@@ -270,24 +279,24 @@ class DatabaseService:
         else:
             return sus['imgFilename']
 
-    def DeleteImagePath(self, name=''):
+    def DeleteMember(self, name=''):
         """
         刪除單一人的人臉圖片與虛擬頭像資料
         :param name: 使用者名
         :return: 是否刪除成功，找不到資料也會回傳False
         """
-        if self.getImagePath(name) == '':
+        if self.getMemberImageFileName(name) == '':
             print("刪除失敗！原因：查無資料")
             return False
         else:
-            ImagePath = self.getImagePath(name)
-            avatarPath = self.getAvatarPath(name)
-            imageFilename = self.getImageName(name)
-            avatarFilename = self.getAvatarName(name)
+            ImagePath = self.getMemberImagePath(name)
+            avatarPath = self.getMemberAvatarPath(name)
+            imageFilename = self.getMemberImageFileName(name)
+            avatarFilename = self.getMemberAvatarFileName(name)
 
-            if self.fileService.DeleteImage(ImagePath, imageFilename) and \
-                    self.fileService.DeleteImage(avatarPath, avatarFilename):
-                x = self.col_ImagePath.delete_one({"name": {"$regex": name}})
+            if FileManager.DeleteImage(ImagePath, imageFilename) and \
+                    FileManager.DeleteImage(avatarPath, avatarFilename):
+                x = self.col_Member.delete_one({"name": {"$regex": name}})
                 print("刪除成功！")
                 print(x.deleted_count, "筆資料被刪除")
                 return True
@@ -311,7 +320,7 @@ class DatabaseService:
             imgPath = self.getSUSImagePath(current_time)
             imgFilename = self.getSUSImageName(current_time)
 
-            if self.fileService.DeleteImage(vidPath, vidFilename) and self.fileService.DeleteImage(imgPath, imgFilename):
+            if FileManager.DeleteImage(vidPath, vidFilename) and FileManager.DeleteImage(imgPath, imgFilename):
                 result = self.col_Amogus.delete_one({"appear": {"$regex": current_time}})
                 print("刪除成功！")
                 print(result.deleted_count, "筆資料被刪除")
@@ -333,7 +342,7 @@ class DatabaseService:
         imgFilename = self.getAllSUSImageNames()
 
         for vpath, vfile, ipath, ifile in zip(vidPath, vidFilename, imgPath, imgFilename):
-            if self.fileService.DeleteImage(vpath, vfile) and self.fileService.DeleteImage(ipath, ifile):
+            if FileManager.DeleteImage(vpath, vfile) and FileManager.DeleteImage(ipath, ifile):
                 if self.col_Amogus.delete_one({"vidFilename": {"$regex": vfile}}):
                     print("刪除成功！")
                     i += 1
@@ -347,17 +356,17 @@ class DatabaseService:
         print(f'{i}筆資料被刪除')
         return True
 
-    def DeleteAllImagePath(self):
+    def DeleteAllMember(self):
         """
         刪除所有圖片資料
         :return: 是否刪除成功
         """
-        x = self.col_ImagePath.delete_many({})
+        x = self.col_Member.delete_many({})
         print("刪除成功！")
         print(x.deleted_count, "筆資料被刪除")
         return True
 
-    def updateImagePath(self):
+    def updateMember(self):
         pass
 
 # # 更新資料

@@ -1,9 +1,11 @@
 # import pymongo
 # import os
 # import cv2
-import Service.DatabaseService as DBservice
+# from Server.Service import DBService
+from Server.Service import FileManager
 # import numpy as np
-# print(os.path.join(os.getcwd(), 'Faces'))
+
+# print(os.path.join(os.getcwd(), 'faces'))
 # x = os.getcwd()
 # print(x)
 # os.chdir('Service')
@@ -18,6 +20,4 @@ import Service.DatabaseService as DBservice
 # x = np.vstack((x, currentArray))
 # print(x)
 # import datetime
-
-db = DBservice.DatabaseService()
-print(db.DeleteAllSUS())
+print(FileManager.TEST())

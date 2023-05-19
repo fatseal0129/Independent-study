@@ -29,12 +29,12 @@ def addUserFaces(name):
                 The_User = img[y1:y2, x1:x2]
                 filename = name + '-' + firstTime.strftime("%Y%m%d,%H_%M_%S")+ '.png'
                 # 人臉
-                cv2.imwrite(os.path.join(os.getcwd(), 'images', 'Faces', filename), The_User)
+                cv2.imwrite(os.path.join(os.getcwd(), 'images', 'faces', filename), The_User)
                 # # Avatar臉 (暫時)
                 cv2.imwrite(os.path.join(os.getcwd(), 'images', 'avatar', filename), The_User)
                 # 寫入資料庫 database service
                 db = DBservice.DatabaseService()
-                isaa = db.addImagePathToDatabase(os.path.join(os.getcwd(), 'images', 'Faces'),
+                isaa = db.addImagePathToDatabase(os.path.join(os.getcwd(), 'images', 'faces'),
                                                  os.path.join(os.getcwd(), 'images', 'avatar'),
                                                  filename, filename)
         elif isaa:

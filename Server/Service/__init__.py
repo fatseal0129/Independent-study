@@ -1,7 +1,9 @@
-import Service.DatabaseService
-import Service.FileService
-import Service.AlertService
+import Server.Service.DatabaseService
+import Server.Service.FileService
+import Server.Service.AlertService
+import Server.Service.DetectService
 
-DBService = DatabaseService.DatabaseService()
-FileService = FileService
-AlertService = AlertService
+DB = DatabaseService.DatabaseService()
+FileManager = FileService
+AlertManager = AlertService.AlertSUS()
+DetectManager = DetectService.DetectManager()

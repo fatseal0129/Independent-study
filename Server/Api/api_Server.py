@@ -5,16 +5,8 @@ from websockets.exceptions import ConnectionClosed
 import uvicorn
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-import Detect.DetectService
-
-
-class CameraInfo(BaseModel):
-    name: str
-    mode: str
-    state: bool
-
-
-detectManager = Detect.DetectService.DetectManager()
+from Server.Service import DetectManager
+from model import CameraInfo
 
 app = FastAPI()
 app.add_middleware(
@@ -28,7 +20,7 @@ app.add_middleware(
 
 @app.post('/server/add/Detect')
 async def addDetect(cam_info: CameraInfo):
-    detectManager.addDetectCam(cam_info.name, cam_info.mode, cam_info.state)
+    DetectManager.addDetectCam(cam_info.name, cam_info.mode, cam_info.state)
 
 
 @app.websocket("/ws")
@@ -43,7 +35,7 @@ async def read_webscoket(websocket: WebSocket):
             else:
                 data = eval(raw_data)
                 current_time = eval(raw_time)
-                detectManager.Detect(data, current_time)
+                DetectManager.Detect(data, current_time)
     except WebSocketDisconnect:
         print("Box Disconnected! reason: 'WebSocketDisconnect'")
     except ConnectionClosed:

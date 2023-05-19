@@ -1,11 +1,10 @@
 import cv2
 import face_recognition
 import cvzone
-import Service.FileService as FileService
+from Server.Service import FileManager, DB
 from ultralytics import YOLO
 import math
-# from cvzone.FaceMeshModule import FaceMeshDetector
-from sort import *
+from Server.sort import *
 from datetime import datetime
 
 
@@ -60,8 +59,16 @@ class DetectMode:
         # ID持續多久(秒)會變成可疑人物
         self.susLimitTime = 20
 
-        self.existFaceList, self.existfaceName = FileService.loadingKnowFace()
-        self.existFaceEncoding = FileService.encodeFace(self.existFaceList)
+        # 取得所有人名
+        self.existfaceName = DB.getAllMemberNames()
+        # 取得所有人臉照片
+        self.existFaceList = FileManager.loadingKnowFace(filenameList=DB.getAllMemberImageFileNames(),
+                                                         pathList=DB.getAllMemberImagePath())
+
+        # encode所有人臉
+        self.existFaceEncoding = FileManager.encodeFace(self.existFaceList)
+
+    #之後要實作reflash功能 去刷新目前存在的臉跟encoding
 
     def outdoor_mode(self, origin_image, current_time):
         """

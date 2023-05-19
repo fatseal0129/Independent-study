@@ -2,9 +2,9 @@ import base64
 import threading
 from collections import deque
 from enum import Enum, unique
-from Detect import dm
+from Server.Detect import Dm
 import cv2
-import Service.AlertService
+from Server.Service import AlertManager
 import numpy as np
 
 
@@ -25,8 +25,6 @@ class DetectManager:
 
         ## 之後要實作Loading資料庫
 
-
-        self.alert = Service.AlertService.AlertSUS()
 
         self.isSusTime_outdoor = False
         self.recordingTime_outdoor = 0
@@ -78,66 +76,66 @@ class DetectManager:
 
 
     def RoomMode(self, frame, current_time):
-        predict, abandoned_objects = dm.room_mode(frame, current_time)
+        predict, abandoned_objects = Dm.room_mode(frame, current_time)
 
         if len(abandoned_objects) > 0:
             if self.isSusTime_Room is False:
-                self.alert.createWriter(current_time, frame)
+                AlertManager.createWriter(current_time, frame)
                 self.recordingTime_Room = current_time
                 self.isSusTime_Room = True
         else:
             if self.isSusTime_Room:
                 self.isSusTime_Room = False
-                self.alert.cleanSingle(self.recordingTime_Room)
+                AlertManager.cleanSingle(self.recordingTime_Room)
             self.recordingTime_Room = current_time
 
         for objects in abandoned_objects:
             #id, x2, y2, w2, h2 = objects
             if self.isSusTime_Room:
-                self.alert.susWriteFrame(frame, self.recordingTime_Room)
+                AlertManager.susWriteFrame(frame, self.recordingTime_Room)
             cv2.putText(predict, f'FIND SUS! Recording...', (500, 50), cv2.FONT_HERSHEY_COMPLEX, 1.2, (34, 34, 178),
                         lineType=cv2.LINE_AA)
         return predict
 
 
     def OutDoorMode(self, frame, current_time):
-        predict, abandoned_objects = dm.outdoor_mode(frame, current_time)
+        predict, abandoned_objects = Dm.outdoor_mode(frame, current_time)
 
         if len(abandoned_objects) > 0:
             if self.isSusTime_outdoor is False:
-                self.alert.createWriter(current_time, frame)
+                AlertManager.createWriter(current_time, frame)
                 self.recordingTime_outdoor = current_time
                 self.isSusTime_outdoor = True
         else:
             if self.isSusTime_outdoor:
                 self.isSusTime_outdoor = False
-                self.alert.cleanSingle(self.recordingTime_outdoor)
+                AlertManager.cleanSingle(self.recordingTime_outdoor)
             self.recordingTime_outdoor = current_time
 
         for objects in abandoned_objects:
             # id, x2, y2, w2, h2 = objects
             if self.isSusTime_outdoor:
-                self.alert.susWriteFrame(frame, self.recordingTime_outdoor)
+                AlertManager.susWriteFrame(frame, self.recordingTime_outdoor)
             cv2.putText(predict, f'FIND SUS! Recording...', (500, 50), cv2.FONT_HERSHEY_COMPLEX, 1.2, (34, 34, 178),
                         lineType=cv2.LINE_AA)
 
         return predict
 
     def NormalMode(self, frame):
-        return dm.normal_mode(frame)
+        return Dm.normal_mode(frame)
 
     def RoomOutsideMode(self, frame, current_time):
-        predict, abandoned_objects = dm.room_mode_goOutside(frame, current_time)
+        predict, abandoned_objects = Dm.room_mode_goOutside(frame, current_time)
 
         if len(abandoned_objects) > 0 and (self.isSusTime_Room_outside is False):
             self.recordingTime_Room_outside = current_time
-            self.alert.createWriter(current_time, frame)
+            AlertManager.createWriter(current_time, frame)
             self.isSusTime_Room_outside = True
         elif (current_time - self.recordingTime_Room_outside).seconds > 10:
             self.isSusTime_Room_outside = False
 
         if self.isSusTime_Room_outside:
-            self.alert.susWriteFrame(frame, self.recordingTime_Room_outside)
+            AlertManager.susWriteFrame(frame, self.recordingTime_Room_outside)
             cv2.putText(predict, f'FIND SUS! Recording...', (500, 50), cv2.FONT_HERSHEY_COMPLEX, 1.2, (34, 34, 178),
                         lineType=cv2.LINE_AA)
         return predict
