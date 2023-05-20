@@ -1,9 +1,22 @@
 import Box.Camera.Camera as cam
+import requests
 class CameraManager:
     def __init__(self):
         self.CameraList = {}
-
+        self.getcamstateurl = 'http://127.0.0.1:8000/server/camera/caminfo'
+        self.loadCamera()
     def loadCamera(self):
+        raw_state = requests.get(url=self.getcamstateurl)
+        if raw_state.status_code == 200:
+            cam_state = raw_state.json()
+            for cam in cam_state:
+                name = cam['name']
+                mode = cam['mode']
+                url = cam['url']
+                self.createCamera(url, name, mode)
+        else:
+            print(f'取得State失敗！statusCode:{raw_state.status_code}\nReason{raw_state.reason}')
+
         pass
 
     def getCleanCameraFrame(self, name):

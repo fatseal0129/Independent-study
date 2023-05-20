@@ -27,15 +27,21 @@ async def addDetect(cam_info: CameraInfo):
 
 # 取得攝影機mode, name資料
 @app.get('/server/camera/modeinfo')
-async def getCameraInfo():
+async def getCameraMode():
     cam = DB.getAllCamName_with_Mode()
     return cam
 
 # 取得攝影機state, name資料
 @app.get('/server/camera/stateinfo')
-async def getCameraModeNState():
+async def getCameraState():
     states = DB.getAllCamName_with_State()
     return states
+
+# 取得攝影機資料
+@app.get('/server/camera/caminfo')
+async def getCameraState():
+    info = DB.getAllCamInfo()
+    return info
 
 # 設置攝影機模式
 @app.get('/server/camera/setmode/{mode}')

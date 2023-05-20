@@ -116,13 +116,23 @@ class DatabaseService:
 
     def getAllCamState(self):
         """
-        取得所有攝影機資料
+        取得所有攝影機state資料
         :return:
         """
         states = []
         for cam in self.col_Camera.find():
             states.append(cam['state'])
         return states
+
+    def getAllCamInfo(self):
+        """
+        取得所有攝影機資料
+        :return:
+        """
+        cams = []
+        for cam in self.col_Camera.find():
+            cams.append(cam)
+        return cams
 
     def getAllCamMode(self):
         """

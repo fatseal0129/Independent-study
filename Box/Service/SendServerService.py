@@ -15,16 +15,19 @@ class sendService:
         self.CameraState = {}
 
         self.camservice = None
-
+        self.isUsingNum = False
         self.camNum = 0
 
-        # 實作loadCamera 之後資料都要與資料庫對接
-        ####
-        ####
 
-        # 之後要改的
         self.wsurl = "ws://127.0.0.1:8000/ws"
-        self.posturl = 'http://127.0.0.1:8000/server/add/Detect'
+        self.postcamurl = 'http://127.0.0.1:8000/server/add/Detect'
+
+        self.getcamstateurl = 'http://127.0.0.1:8000/server/camera/stateinfo'
+        self.getcammodeurl = 'http://127.0.0.1:8000/server/camera/modeinfo'
+
+        self.loadCamera()
+
+        time.sleep(1)
 
         self.ws = WebSocketApp(self.wsurl,
                                on_open=self.on_open,
@@ -41,7 +44,7 @@ class sendService:
             "state": state,
             "url": url
         }
-        r = requests.post(url=self.posturl, json=data)
+        r = requests.post(url=self.postcamurl, json=data)
         if r.status_code == 200:
             self.CameraModeList[name] = mode
             self.CameraState[name] = state
@@ -95,7 +98,26 @@ class sendService:
                 time.sleep(1)
 
     def loadCamera(self):
-        pass
+        raw_state = requests.get(url=self.getcamstateurl)
+        if raw_state.status_code == 200:
+            cam_state = raw_state.json()
+            for state in cam_state:
+                name = state['name']
+                state = state['state']
+                self.CameraState[name] = state
+        else:
+            print(f'取得State失敗！statusCode:{raw_state.status_code}\nReason{raw_state.reason}')
+
+        raw_mode = requests.get(url=self.getcammodeurl)
+        if raw_mode.status_code == 200:
+            cam_mode = raw_mode.json()
+            for mode in cam_mode:
+                name = mode['name']
+                mode = mode['mode']
+                self.CameraModeList[name] = mode
+        else:
+            print(f'取得Mode失敗！statusCode:{raw_mode.status_code}\nReason{raw_mode.reason}')
+        self.camNum += 1
 
     def changeCameraMode(self, name, changed_mode):
         pass
