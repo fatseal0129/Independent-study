@@ -18,7 +18,7 @@ def DeleteImage(path, filename):
         return False
     return True
 
-## 可能思考要傳入引數之類的 而不是直接從db拿 以下皆是
+
 def loadingKnowFace(filenameList, pathList):
     """
     將照片載入到List裡

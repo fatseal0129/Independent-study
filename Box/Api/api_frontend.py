@@ -24,60 +24,28 @@ serverManager = sendService.sendService()
 @app.post('/camera/add')
 async def createCamera(info: Cameta_info):
     print(info.url)
-    result = camManager.createCamera(url=0, name=info.name, initial_mode=info.init_mode)
+    try:
+        camManager.createCamera(url=0, name=info.name, initial_mode=info.init_mode)
     # 若 result = TRUE 就呼叫sendServer來建立Detect服務
-    if result:
-        serverManager.createConnect_to_Server(info.name, info.init_mode, True)
+    except KeyError:
+        return {"message": "名字已存在！"}
+    except Exception as e:
+        return {"message": f'不知名錯誤, 原因{e}'}
+
+    serverManager.createConnect_to_Server(name=info.name, mode=info.init_mode, state=True, url=info.url)
 
 # 刪除攝影機
 @app.delete('/camera/delete')
 async def DeleteCamera(name: str):
+
+    ## 要實作資料庫要刪除攝影機
     result = camManager.cleanCamera(name)
     if result:
         return {"message": "Success!"}
     else:
         return {"message": "Fail!"}
 
-# 拿取全部可疑人士
-@app.get('/sus/get/all')
-async def getALLSUSMember():
-    pass
-
-# 顯示成員
-@app.get('/member/get')
-async def getAllMember():
-    # 要重做 與SERVER溝通
-    pass
-    # allMember = []
-    # avatarList, nameList = FileService.loadingKnowAvatar()
-    # for avatar, name in zip(avatarList, nameList):
-    #     encode = base64.b64encode(avatar)
-    #     allMember.append({
-    #         "Name": name,
-    #         "Avatar": encode
-    #     })
-    # return allMember
-
-
-# 新增成員
-@app.post("/member/add")
-async def addMember(response):
-    # 要重做 與SERVER溝通
-    pass
-    # image = base64.b64decode(response['Image'])
-    # avatar = base64.b64decode(response['Avatar'])
-    # name = response['Name']
-    # if FileService.saveImage(image, name, avatar):
-    #     return {"message": "success!"}
-    # else:
-    #     return {"message": "Fail!"}
-
-# 編輯成員
-@app.post('/member/edit')
-async def editMember(response):
-    pass
-
-# 檢查成員
+# 更改攝影機模式
 
 if __name__ == "__main__":
     uvicorn.run("api:app", reload=True)

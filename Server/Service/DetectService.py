@@ -4,7 +4,7 @@ from collections import deque
 from enum import Enum, unique
 from Server.Detect import Dm
 import cv2
-from Server.Service import AlertManager
+from Server.Service import AlertManager, DB, FileManager
 import numpy as np
 
 
@@ -16,6 +16,7 @@ class Mode(str, Enum):
     Room_Mode = "room"
     Room_Outside_Mode = "room_outside"
 
+
 class DetectManager:
     def __init__(self):
         # 這邊應當要與send-serverService同步
@@ -23,8 +24,9 @@ class DetectManager:
         # 儲存Camera是否有暫停
         self.CameraState = {}
 
-        ## 之後要實作Loading資料庫
+        self.deque = deque()
 
+        self.isReflashing = False
 
         self.isSusTime_outdoor = False
         self.recordingTime_outdoor = 0
@@ -35,10 +37,48 @@ class DetectManager:
         self.isSusTime_Room_outside = False
         self.recordingTime_Room_outside = 0
 
+        # 進行Cam刷新
+        self.reflashingCamData()
+
+        # 進行人臉刷新
+        self.reflashingDetectData()
+
+    def reflashingDetectData(self):
+        """
+        刷新Detect人臉資料
+        :return:
+        """
+        self.isReflashing = True
+        names = DB.getAllMemberNames()
+        facelist = FileManager.loadingKnowFace(filenameList=DB.getAllMemberImageFileNames(),
+                                               pathList=DB.getAllMemberImagePath())
+        encodelist = FileManager.encodeFace(facelist)
+
+        Dm.reflashing(names=names, facelist=facelist, encodelist=encodelist)
+        self.isReflashing = False
+    def reflashingCamData(self):
+        """
+        刷新Cam資料
+        :return:
+        """
+        self.isReflashing = True
+        cammodes = DB.getAllCamName_with_Mode()
+        camstates = DB.getAllCamName_with_State()
+        for modes in cammodes:
+            name = modes['name']
+            mode = modes['mode']
+            self.CameraModeList[name] = mode
+
+        for states in camstates:
+            name = states['name']
+            state = states['state']
+            self.CameraState[name] = state
+        self.isReflashing = False
+
     def addDetectCam(self, name, mode, status):
         """
         把Camera加入到Detect的List
-        :param name:名字
+        :param name:地點
         :param mode:模式
         :param status:是否為暫停
         :return:
@@ -49,38 +89,41 @@ class DetectManager:
     def Detect(self, data, current_time):
         temp_Dict = {}
         for name, raw_frame in data.items():
-            # 可能會出錯 這裡要小心
-            predict = np.empty([1, 1, 1])
-            frame = base64.b64encode(raw_frame)
-            mode = self.CameraModeList[name]
+            if not self.isReflashing:
+                # 可能會出錯 這裡要小心
+                predict = np.empty([1, 1, 1])
+                frame = base64.b64encode(raw_frame)
+                mode = self.CameraModeList[name]
 
-            if mode == Mode.Room_Mode:
-                predict = self.RoomMode(frame, current_time)
+                if mode == Mode.Room_Mode:
+                    predict = self.RoomMode(frame, current_time)
 
-            elif mode == Mode.Normal_Mode:
-                predict = self.NormalMode(frame)
+                elif mode == Mode.Normal_Mode:
+                    predict = self.NormalMode(frame)
 
-            elif mode == Mode.Outdoor_Mode:
-                predict = self.OutDoorMode(frame, current_time)
+                elif mode == Mode.Outdoor_Mode:
+                    predict = self.OutDoorMode(frame, current_time)
 
-            elif mode == Mode.Room_Outside_Mode:
-                predict = self.RoomOutsideMode(frame, current_time)
+                elif mode == Mode.Room_Outside_Mode:
+                    predict = self.RoomOutsideMode(frame, current_time)
 
-            else:
-                print(f'Mode not exist! {name} using Normal mode')
-                predict = self.NormalMode(frame)
+                else:
+                    print(f'Mode not exist! {name} using Normal mode')
+                    predict = self.NormalMode(frame)
 
-            # 要實作PUSH至RTSP SERVER
-            # temp_Dict[name] = base64.b64decode(predict)
-        #return temp_Dict
-
+                # 要實作PUSH至RTSP SERVER
+                # temp_Dict[name] = base64.b64decode(predict)
+        # return temp_Dict
 
     def RoomMode(self, frame, current_time):
         predict, abandoned_objects = Dm.room_mode(frame, current_time)
 
         if len(abandoned_objects) > 0:
             if self.isSusTime_Room is False:
-                AlertManager.createWriter(current_time, frame)
+                data = AlertManager.createWriter(current_time, frame)
+                # 實作資料庫
+                DB.addAmogus(data['id'], data['current_time'], data['output_vid_path'], data['output_img_path'],
+                             data['output_vid_name'], data['output_img_name'])
                 self.recordingTime_Room = current_time
                 self.isSusTime_Room = True
         else:
@@ -90,20 +133,22 @@ class DetectManager:
             self.recordingTime_Room = current_time
 
         for objects in abandoned_objects:
-            #id, x2, y2, w2, h2 = objects
+            # id, x2, y2, w2, h2 = objects
             if self.isSusTime_Room:
                 AlertManager.susWriteFrame(frame, self.recordingTime_Room)
             cv2.putText(predict, f'FIND SUS! Recording...', (500, 50), cv2.FONT_HERSHEY_COMPLEX, 1.2, (34, 34, 178),
                         lineType=cv2.LINE_AA)
         return predict
 
-
     def OutDoorMode(self, frame, current_time):
         predict, abandoned_objects = Dm.outdoor_mode(frame, current_time)
 
         if len(abandoned_objects) > 0:
             if self.isSusTime_outdoor is False:
-                AlertManager.createWriter(current_time, frame)
+                data = AlertManager.createWriter(current_time, frame)
+                # 實作資料庫
+                DB.addAmogus(data['id'], data['current_time'], data['output_vid_path'], data['output_img_path'],
+                             data['output_vid_name'], data['output_img_name'])
                 self.recordingTime_outdoor = current_time
                 self.isSusTime_outdoor = True
         else:
@@ -129,7 +174,10 @@ class DetectManager:
 
         if len(abandoned_objects) > 0 and (self.isSusTime_Room_outside is False):
             self.recordingTime_Room_outside = current_time
-            AlertManager.createWriter(current_time, frame)
+            data = AlertManager.createWriter(current_time, frame)
+            # 實作資料庫
+            DB.addAmogus(data['id'], data['current_time'], data['output_vid_path'], data['output_img_path'],
+                         data['output_vid_name'], data['output_img_name'])
             self.isSusTime_Room_outside = True
         elif (current_time - self.recordingTime_Room_outside).seconds > 10:
             self.isSusTime_Room_outside = False

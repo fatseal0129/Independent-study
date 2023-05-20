@@ -1,23 +1,23 @@
 import cv2
 import face_recognition
 import cvzone
-from Server.Service import FileManager, DB
 from ultralytics import YOLO
 import math
 from Server.sort import *
+import os
 from datetime import datetime
 
 
 class DetectMode:
     def __init__(self):
         # 載入偵測「人臉」model
-        self.model_faceDetectOnly = YOLO('yolo-weights/yolov8n-face.pt')
+        self.model_faceDetectOnly = YOLO(os.path.join(os.path.dirname(os.getcwd()), 'yolo-weights', 'yolov8n-face.pt'))
 
         # 讀取偵測「人臉」model的class名稱
         self.classNames_faceDetectOnly = self.model_faceDetectOnly.names
 
         # 載入偵測「人體」model
-        self.model_PersonDetectOnly = YOLO('yolo-weights/yolov8n.pt')
+        self.model_PersonDetectOnly = YOLO(os.path.join(os.path.dirname(os.getcwd()), 'yolo-weights', 'yolov8n.pt'))
 
         # 讀取偵測「人體」model的class名稱
         self.classNames_PersonDetectOnly = self.model_PersonDetectOnly.names
@@ -60,16 +60,25 @@ class DetectMode:
         self.susLimitTime = 20
 
         # 取得所有人名
-        self.existfaceName = DB.getAllMemberNames()
+        self.existfaceName = []
         # 取得所有人臉照片
-        self.existFaceList = FileManager.loadingKnowFace(filenameList=DB.getAllMemberImageFileNames(),
-                                                         pathList=DB.getAllMemberImagePath())
+        self.existFaceList = []
 
         # encode所有人臉
-        self.existFaceEncoding = FileManager.encodeFace(self.existFaceList)
+        self.existFaceEncoding = []
 
-    #之後要實作reflash功能 去刷新目前存在的臉跟encoding
+    def reflashing(self, names, facelist, encodelist):
+        """
+        刷新目前存在的臉跟encoding
+        :return:
+        """
+        # 取得所有人名
+        self.existfaceName = names
+        # 取得所有人臉照片
+        self.existFaceList = facelist
 
+        # encode所有人臉
+        self.existFaceEncoding = encodelist
     def outdoor_mode(self, origin_image, current_time):
         """
         戶外模式

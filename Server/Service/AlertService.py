@@ -1,7 +1,6 @@
 import cv2
 from vidgear.gears import WriteGear
 import os
-from Server.Service import DB
 
 
 class AlertSUS:
@@ -33,14 +32,17 @@ class AlertSUS:
         # 截圖
         cv2.imwrite(os.path.join(output_img_path, output_img_name), frame)
 
-        # 資料庫新增
-        result = DB.addAmogus(self.ID, fix_current_time, output_vid_path, output_img_path,
-                                   output_vid_name, output_img_name)
-        if result:
-            print("新增嫌疑人資料庫成功！")
-        else:
-            print("新增嫌疑人資料庫失敗")
         self.ID += 1
+
+        return {
+            "id": self.ID-1,
+            "current_time": fix_current_time,
+            "output_vid_path": output_vid_path,
+            "output_img_path": output_img_path,
+            "output_vid_name": output_vid_name,
+            "output_img_name": output_img_name
+        }
+
 
 
     def cleanUp(self):

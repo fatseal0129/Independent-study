@@ -2,7 +2,7 @@
 # import os
 # import cv2
 # from Server.Service import DBService
-from Server.Service import FileManager
+# from Server.Service import FileManager
 # import numpy as np
 
 # print(os.path.join(os.getcwd(), 'faces'))
@@ -20,4 +20,12 @@ from Server.Service import FileManager
 # x = np.vstack((x, currentArray))
 # print(x)
 # import datetime
-print(FileManager.TEST())
+# print(FileManager.TEST())
+manage = {}
+
+manage['13'] = 123
+
+if manage['23']:
+    print(f'有了拉')
+else:
+    print(f'沒找到')

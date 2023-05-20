@@ -5,10 +5,3 @@ class Cameta_info(BaseModel):
     url: str
     init_mode: str
 
-class Member_info(BaseModel):
-    name: str
-    avatar: Any
-    image: Any
-
-class SUS_info(BaseModel):
-    name: str

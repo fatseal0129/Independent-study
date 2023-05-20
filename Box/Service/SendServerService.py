@@ -2,7 +2,7 @@ import threading
 # from collections import deque
 from websocket import WebSocketApp
 import requests
-# import time
+import time
 import base64
 from Box.Service import CamService
 import datetime
@@ -34,11 +34,12 @@ class sendService:
         print("啟動websocket連接...")
         self.ws.run_forever()
 
-    def createConnect_to_Server(self, name:str, mode:str, state:bool):
+    def createConnect_to_Server(self, name: str, mode: str, url: str, state: bool):
         data = {
             "name": name,
             "mode": mode,
-            "state": state
+            "state": state,
+            "url": url
         }
         r = requests.post(url=self.posturl, json=data)
         if r.status_code == 200:
@@ -90,6 +91,8 @@ class sendService:
                 # 這時資料會裝著 {camName : frame(b64)}
                 self.ws.send(str(cameraList))
                 self.ws.send(str(current_time))
+            else:
+                time.sleep(1)
 
     def loadCamera(self):
         pass

@@ -11,7 +11,6 @@
 
 # connect to mongoDB
 import pymongo
-from Server.Service import FileManager
 
 class DatabaseService:
     def __init__(self):
@@ -24,8 +23,30 @@ class DatabaseService:
         # 新增一個collection，名稱為Member，用來存放圖片網址，若已存在則是指向的意思
         self.col_Member = self.camDB["Member"]
 
+        # 新增一個collection，名稱為Camera，用來存放攝影機，若已存在則是指向的意思
+        self.col_Camera = self.camDB["Camera"]
+
         # 新增一個collection，名稱為Amogus，用來存放可疑人士，若已存在則是指向的意思
         self.col_Amogus = self.camDB["Amogus"]
+
+    def addCamera(self, name: str, mode: str, url: str, state: bool):
+        """
+        新增攝影機
+        :param name:名字
+        :param mode:模式
+        :param url:連接網址
+        :param state: 是否暫停中
+        :return:
+        """
+        data = {"name": name,
+                "mode": mode,
+                "url": url,
+                "state": state}
+
+        result = self.col_Camera.insert_one(data)
+        print("新增完顯示結果：", result.acknowledged)
+        return result.acknowledged
+
 
     def addMemberToDatabase(self, name: str, imgfilename: str, avatarfilename: str,
                             avatarpath: str, imagepath: str) -> bool:
@@ -92,6 +113,54 @@ class DatabaseService:
         for person in self.col_Member.find():
             data.append(person)
         return data
+
+    def getAllCamState(self):
+        """
+        取得所有攝影機資料
+        :return:
+        """
+        states = []
+        for cam in self.col_Camera.find():
+            states.append(cam['state'])
+        return states
+
+    def getAllCamMode(self):
+        """
+        取得所有攝影機模式
+        :return:
+        """
+        modes = []
+        for cam in self.col_Camera.find():
+            modes.append(cam['mode'])
+        return modes
+
+    def getAllCamName_with_State(self):
+        """
+        取得名字與State的dictList
+        :return: [{name:名字, state:狀態}] -> List
+        """
+        cams = []
+        for cam in self.col_Camera.find():
+            data = {
+                "name": cam['name'],
+                "state": cam['state']
+            }
+            cams.append(data)
+        return cams
+
+    def getAllCamName_with_Mode(self):
+        """
+        取得名字與Mode的dictList
+        :return: [{name:名字, mode:模式}] -> List
+        """
+        cams = []
+        for cam in self.col_Camera.find():
+            data = {
+                "name": cam['name'],
+                "mode": cam['mode']
+            }
+            cams.append(data)
+        return cams
 
     def getMemberAvatarPath(self, name: str = ''):
         """
@@ -211,6 +280,17 @@ class DatabaseService:
             names.append(name['avatarfilename'])
         return names
 
+    def getAllMemberAvatarPath(self):
+        """
+        取得所有虛擬頭像照片的路徑
+        :return: 存放所有頭像令敬的List
+        """
+        paths = []
+        for path in self.col_Member.find():
+            paths.append(path['avatarpath'])
+        return paths
+
+
     def getAllSUSVideoNames(self):
         """
         取得所有SUS人影片的檔名
@@ -289,20 +369,11 @@ class DatabaseService:
             print("刪除失敗！原因：查無資料")
             return False
         else:
-            ImagePath = self.getMemberImagePath(name)
-            avatarPath = self.getMemberAvatarPath(name)
-            imageFilename = self.getMemberImageFileName(name)
-            avatarFilename = self.getMemberAvatarFileName(name)
+            x = self.col_Member.delete_one({"name": {"$regex": name}})
+            print("刪除成功！")
+            print(x.deleted_count, "筆資料被刪除")
+            return True
 
-            if FileManager.DeleteImage(ImagePath, imageFilename) and \
-                    FileManager.DeleteImage(avatarPath, avatarFilename):
-                x = self.col_Member.delete_one({"name": {"$regex": name}})
-                print("刪除成功！")
-                print(x.deleted_count, "筆資料被刪除")
-                return True
-            else:
-                print("刪除失敗！ 找不到檔案")
-                return False
 
     def DeleteSUS_time(self, current_time):
         """
@@ -314,46 +385,20 @@ class DatabaseService:
             print("刪除失敗！原因：查無資料")
             return False
         else:
-            vidPath = self.getSUSVideoPath(current_time)
-            vidFilename = self.getSUSVideoName(current_time)
+            result = self.col_Amogus.delete_one({"appear": {"$regex": current_time}})
+            print("刪除成功！")
+            print(result.deleted_count, "筆資料被刪除")
+            return True
 
-            imgPath = self.getSUSImagePath(current_time)
-            imgFilename = self.getSUSImageName(current_time)
-
-            if FileManager.DeleteImage(vidPath, vidFilename) and FileManager.DeleteImage(imgPath, imgFilename):
-                result = self.col_Amogus.delete_one({"appear": {"$regex": current_time}})
-                print("刪除成功！")
-                print(result.deleted_count, "筆資料被刪除")
-                return True
-            else:
-                print("刪除失敗！ 找不到檔案")
-                return False
 
     def DeleteAllSUS(self):
         """
         刪除所有可疑人士圖片資料
         :return: 是否刪除成功
         """
-        i = 0
-        vidPath = self.getAllSUSVideoPath()
-        vidFilename = self.getAllSUSVideoNames()
-
-        imgPath = self.getAllSUSImagePath()
-        imgFilename = self.getAllSUSImageNames()
-
-        for vpath, vfile, ipath, ifile in zip(vidPath, vidFilename, imgPath, imgFilename):
-            if FileManager.DeleteImage(vpath, vfile) and FileManager.DeleteImage(ipath, ifile):
-                if self.col_Amogus.delete_one({"vidFilename": {"$regex": vfile}}):
-                    print("刪除成功！")
-                    i += 1
-                else:
-                    print(f'失敗！ 找不到資料庫資料！{vfile}')
-                    return False
-            else:
-                print(f'失敗！ 找不到檔案！{vfile} 或{ifile}')
-                return False
-
-        print(f'{i}筆資料被刪除')
+        x = self.col_Amogus.delete_many({})
+        print("刪除成功！")
+        print(x.deleted_count, "筆資料被刪除")
         return True
 
     def DeleteAllMember(self):
@@ -366,8 +411,22 @@ class DatabaseService:
         print(x.deleted_count, "筆資料被刪除")
         return True
 
-    def updateMember(self):
-        pass
+    # def updateMember(self, name):
+    #     """
+    #     更新使用者資料
+    #     :return:
+    #     """
+    #     member = self.col_Member.find_one({"name": {"$regex": name}})
+    #     if member is None:
+    #         return False
+    #     else:
+    #         data = {
+    #             name
+    #         }
+    #         result = self.col_Member.replace_one({"name": name}, )
+    #
+    #         return result.acknowledged
+
 
 # # 更新資料
 # myquery = {"name": "John"}
