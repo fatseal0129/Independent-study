@@ -1,57 +1,46 @@
-# import the necessary packages
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import StreamingResponse
-import time
+import requests
 import cv2
-import uvicorn
-from multiprocessing import Process, Queue
+import io
+import numpy as np
+from PIL import Image
+import base64
+
+raw_face = cv2.imread('Face-Zhuming.png')
+
+_, face_buffer = cv2.imencode('.jpg', raw_face)
+
+str_face = base64.b64encode(face_buffer).decode('utf-8')
+
+raw_faceavatar = cv2.imread('Avatar-Zhuming.png')
+
+_, avatar_buffer = cv2.imencode('.jpg', raw_faceavatar)
+
+str_avatar = base64.b64encode(avatar_buffer).decode('utf-8')
 
 
-app = FastAPI()
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
 
-manager = None
-
-def start_stream(url_rtsp, manager):
-    cap = cv2.VideoCapture(url_rtsp)
-    while True:
-        _, frame = cap.read()
-        _, encoded = cv2.imencode('.jpg', frame)
-        manager.put(encoded)
-        time.sleep(0.2)
+## decode
+#
+# face_original = base64.b64decode(str_face)
+# face_as_np = np.frombuffer(face_original, dtype=np.uint8)
+# image_buffer = cv2.imdecode(face_as_np, flags=1)
 
 
-def streamer():
-    try:
-        while manager:
-            frame = manager.get()
-            print(frame)
-            yield b'data:'+frame.tobytes()+b'\n\n'
-            # yield b'--frame\r\n' + frame.tobytes() + b'\r\n'
-            # yield (b'--frame\r\n' b'Content-Type: image/jpeg\r\n\r\n' +
-            #        frame.tobytes() + b'\r\n')
-    except GeneratorExit:
-        print("cancelled")
 
-@app.get("/getVideo")
-async def video_feed():
-    return StreamingResponse(streamer(), media_type='text/event-stream')
+# #
+# cv2.imshow('My Image', image_buffer)
+# cv2.waitKey(0)
+# cv2.destroyAllWindows()
 
-@app.get("/keep-alive")
-def keep_alive():
-    global manager
-    if not manager:
-        manager = Queue()
-        p = Process(target=start_stream, args=(0, manager,))
-        p.start()
-        return "YES!"
+data = {
+            "name": 'Zhuming',
+            'image': str_face,
+            'avatar': str_avatar,
+}
 
-if __name__ == "__main__":
-    uvicorn.run("apitest:app", reload=True)
+r = requests.post(url="http://127.0.0.1:8000/member/add", json=data)
+if r.status_code == 200:
+    print(f'伺服器回傳: {r.text}')
+    print(f'{r.content}')
+else:
+    print(f'加入失敗！statusCode:{r.status_code}\nReason:{r.reason}')
