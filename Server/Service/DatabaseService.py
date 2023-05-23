@@ -399,6 +399,17 @@ class DatabaseService:
             print(x.deleted_count, "筆資料被刪除")
             return True, data
 
+    def DeleteAllMember(self):
+        """
+        刪除所有圖片資料
+        :return: 是否刪除成功
+        """
+        persons = self.getAllMemberData()
+        x = self.col_Member.delete_many({})
+        print("刪除成功！")
+        print(x.deleted_count, "筆資料被刪除")
+        return True, persons
+
 
     def DeleteSUS_time(self, current_time):
         """
@@ -426,15 +437,7 @@ class DatabaseService:
         print(x.deleted_count, "筆資料被刪除")
         return True
 
-    def DeleteAllMember(self):
-        """
-        刪除所有圖片資料
-        :return: 是否刪除成功
-        """
-        x = self.col_Member.delete_many({})
-        print("刪除成功！")
-        print(x.deleted_count, "筆資料被刪除")
-        return True
+
 
     # def updateMember(self, name):
     #     """

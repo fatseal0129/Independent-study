@@ -51,8 +51,10 @@ async def setCameraMode(mode: str):
 # 編輯成員
 @app.put('/member/edit/{oldname}')
 async def editMember(oldname: str, new_member: MemberInfo):
-    new_image = base64.b64decode(new_member.image)
-    new_avatar = base64.b64decode(new_member.avatar)
+    # new_image = base64.b64decode(new_member.image)
+    # new_avatar = base64.b64decode(new_member.avatar)
+    new_image = FileManager.encodeImageToBuffer(new_member.image)
+    new_avatar = FileManager.encodeImageToBuffer(new_member.avatar)
 
     oldimgpath = DB.getMemberImagePath(oldname)
     oldimgfilename = DB.getMemberImageFileName(oldname)
