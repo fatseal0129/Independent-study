@@ -369,20 +369,35 @@ class DatabaseService:
         else:
             return sus['imgFilename']
 
-    def DeleteMember(self, name=''):
+    def DeleteMember(self, name: str):
         """
         刪除單一人的人臉圖片與虛擬頭像資料
         :param name: 使用者名
         :return: 是否刪除成功，找不到資料也會回傳False
         """
+        data = {}
+        imgpath = ''
+        avatarpath = ''
+        imgname = ''
+        avatarname = ''
         if self.getMemberImageFileName(name) == '':
             print("刪除失敗！原因：查無資料")
-            return False
+            return False, data
         else:
+            imgname = self.getMemberImageFileName(name)
+            imgpath = self.getMemberImagePath(name)
+            avatarname = self.getMemberAvatarFileName(name)
+            avatarpath = self.getMemberAvatarPath(name)
+            data = {
+                "imgfilename": imgname,
+                "imgpath": imgpath,
+                "avatarfilename": avatarname,
+                "avatarpath": avatarpath
+            }
             x = self.col_Member.delete_one({"name": {"$regex": name}})
             print("刪除成功！")
             print(x.deleted_count, "筆資料被刪除")
-            return True
+            return True, data
 
 
     def DeleteSUS_time(self, current_time):

@@ -2,6 +2,8 @@ import os
 import cv2
 import face_recognition
 import datetime
+import numpy as np
+import base64
 
 
 def DeleteImage(path, filename):
@@ -14,9 +16,7 @@ def DeleteImage(path, filename):
     try:
         os.remove(os.path.join(path, filename))
     except FileNotFoundError:
-        print("找不到檔案")
-        return False
-    return True
+        raise Exception(f'刪除檔案失敗!!\nPath:{path}\nfilename{filename}')
 
 
 def loadingKnowFace(filenameList, pathList):
@@ -65,9 +65,9 @@ def saveImage(image, name, avatar):
     """
 
     # 真人圖片影像檔名
-    imageFileName = name + 'Real-' + datetime.datetime.now().strftime("%Y%m%d,%H_%M_%S") + '.png'
+    imageFileName = name + '-Real-' + datetime.datetime.now().strftime("%Y%m%d,%H_%M_%S") + '.png'
     # 虛擬圖片影像檔名
-    avatarFileName = name + 'avatar-' + datetime.datetime.now().strftime("%Y%m%d,%H_%M_%S") + '.png'
+    avatarFileName = name + '-avatar-' + datetime.datetime.now().strftime("%Y%m%d,%H_%M_%S") + '.png'
 
     imagePath = os.path.join(os.path.dirname(os.getcwd()), 'FileData', 'Member', 'faces')
     avatarPath = os.path.join(os.path.dirname(os.getcwd()), 'FileData', 'Member', 'avatar')
@@ -80,6 +80,17 @@ def saveImage(image, name, avatar):
         raise Exception(f'虛擬頭像儲存失敗!!\nPath:{avatarPath}\nfilename{avatarFileName}')
 
     return [imageFileName, imagePath, avatarFileName, avatarPath]
+
+def encodeImageToBuffer(image):
+    """
+    將base64編碼轉成buffer
+    :param image: base64尚未解碼的
+    :return:
+    """
+    image_original = base64.b64decode(image)
+    image_as_np = np.frombuffer(image_original, dtype=np.uint8)
+    image_buffer = cv2.imdecode(image_as_np, flags=1)
+    return image_buffer
 
 
 def encodeFace(faceList):
