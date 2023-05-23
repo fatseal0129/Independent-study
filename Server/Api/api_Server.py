@@ -66,10 +66,10 @@ async def editMember(oldname: str, new_member: MemberInfo):
             imageFileName, imagePath, avatarFileName, avatarPath = FileManager.saveImage(new_image, new_avatar, new_member.name)
         except Exception as e:
             return {"message": f'寫入檔案失敗, 原因：{e}'}
-        if DB.addMemberToDatabase(name=new_member.name, imgfilename=imageFileName, avatarFileName=avatarFileName,
+        if DB.addMemberToDatabase(name=new_member.name, imgfilename=imageFileName, avatarfilename=avatarFileName,
                                   avatarpath=avatarPath, imagepath=imagePath):
             DetectManager.reflashingDetectData()
-            return {"message": "success!"}
+            return {"message": "success"}
         return {"message": "寫入資料庫失敗！"}
     else:
         return {"message": "刪除失敗！原因：查無資料"}
@@ -78,23 +78,31 @@ async def editMember(oldname: str, new_member: MemberInfo):
 # 刪除人員
 @app.delete('/member/delete/{name}')
 async def deleteMember(name: str):
-    pass
+    suc, data = DB.DeleteMember(name)
+    if suc:
+        try:
+            FileManager.DeleteImage(data['imgpath'], data['imgfilename'])
+            FileManager.DeleteImage(data['avatarpath'], data['avatarfilename'])
+        except Exception as e:
+            return {'message': f'刪除檔案失敗！原因:\n{e}'}
+        return {'message': f'success'}
+    else:
+        return {"message": "刪除失敗！原因：查無資料"}
 
 # 新增人員
 @app.post('/member/add')
 async def addMember(member: MemberInfo):
-    image = base64.b64decode(member.image)
-    avatar = base64.b64decode(member.avatar)
-
+    image = FileManager.encodeImageToBuffer(member.image)
+    avatar = FileManager.encodeImageToBuffer(member.avatar)
     # 先儲存檔案成功再寫入資料庫
     try:
-        imageFileName, imagePath, avatarFileName, avatarPath = FileManager.saveImage(image, avatar, member.name)
+        imageFileName, imagePath, avatarFileName, avatarPath = FileManager.saveImage(image, member.name, avatar)
     except Exception as e:
         return {"message": f'寫入檔案失敗, 原因：{e}'}
-    if DB.addMemberToDatabase(name=member.name, imgfilename=imageFileName, avatarFileName=avatarFileName,
+    if DB.addMemberToDatabase(name=member.name, imgfilename=imageFileName, avatarfilename=avatarFileName,
                               avatarpath=avatarPath, imagepath=imagePath):
         DetectManager.reflashingDetectData()
-        return {"message": "success!"}
+        return {"message": "success"}
     return {"message": "寫入資料庫失敗"}
 
 # 取得所有人員(包含檢查成員)
