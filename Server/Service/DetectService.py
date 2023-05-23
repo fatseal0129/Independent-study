@@ -49,12 +49,14 @@ class DetectManager:
         :return:
         """
         self.isReflashing = True
+        print("偵測到新人臉！刷新中....")
         names = DB.getAllMemberNames()
         facelist = FileManager.loadingKnowFace(filenameList=DB.getAllMemberImageFileNames(),
                                                pathList=DB.getAllMemberImagePath())
         encodelist = FileManager.encodeFace(facelist)
 
         Dm.reflashing(names=names, facelist=facelist, encodelist=encodelist)
+        print("刷新成功！.")
         self.isReflashing = False
     def reflashingCamData(self):
         """
