@@ -19,10 +19,10 @@ class AlertSUS:
         output_params = {"-fourcc": "mp4v", "-fps": 20}
         fix_current_time = current_time.strftime('%y-%m-%d_%H:%M:%S')
 
-        output_vid_path = os.path.join(os.path.dirname(os.getcwd()), 'FileData', 'SUSPeople', "Video")
+        output_vid_path = os.path.join(os.getcwd(), "Server", 'FileData', 'SUSPeople', "Video")
         output_vid_name = f'SUSVideo-{fix_current_time}.mp4'
 
-        output_img_path = os.path.join(os.path.dirname(os.getcwd()), 'FileData', 'SUSPeople', 'Image')
+        output_img_path = os.path.join(os.getcwd(), "Server", 'FileData', 'SUSPeople', 'Image')
         output_img_name = f'SUSImage-{fix_current_time}.png'
 
         print(f'create Writer id: {self.ID}, name: {output_vid_name}')

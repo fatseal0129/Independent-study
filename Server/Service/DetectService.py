@@ -3,6 +3,7 @@ import threading
 from collections import deque
 from enum import Enum, unique
 from Server.Detect import Dm
+import subprocess as sp
 import cv2
 from Server.Service import AlertManager, DB, FileManager
 import numpy as np
@@ -26,6 +27,8 @@ class DetectManager:
 
         self.deque = deque()
 
+        self.pushProcess = dict()
+
         self.isReflashing = False
 
         self.isSusTime_outdoor = False
@@ -37,11 +40,43 @@ class DetectManager:
         self.isSusTime_Room_outside = False
         self.recordingTime_Room_outside = 0
 
+        self.rtmpUrl = ""
+
+        self.command = ['ffmpeg',
+                        '-y',
+                        '-f', 'rawvideo',
+                        '-vcodec', 'rawvideo',
+                        '-pix_fmt', 'bgr24',
+                        '-s', f'{1280}x{720}',
+                        '-r', 20,
+                        '-i', '-',
+                        '-c:v', 'libx264',
+                        '-pix_fmt', 'yuv420p',
+                        '-preset', 'ultrafast',
+                        '-f', 'flv',
+                        self.rtmpUrl]
+
+        # command = ['ffmpeg',
+        #            '-y',
+        #            '-f', 'rawvideo',
+        #            '-vcodec', 'rawvideo',
+        #            '-pix_fmt', 'bgr24',
+        #            '-s', '1280*720',  # 根据输入视频尺寸填写
+        #            '-r', '25',
+        #            '-i', '-',
+        #            '-c:v', 'h264',
+        #            '-pix_fmt', 'yuv420p',
+        #            '-preset', 'ultrafast',
+        #            '-f', 'flv',
+        #            rtmp]
+
         # 進行Cam刷新
         self.reflashingCamData()
 
         # 進行人臉刷新
         self.reflashingDetectData()
+
+
 
     def reflashingDetectData(self):
         """
@@ -75,6 +110,8 @@ class DetectManager:
             name = states['name']
             state = states['state']
             self.CameraState[name] = state
+            if len(self.command) > 0:
+                self.pushProcess[name] = sp.Popen(self.command, stdin=sp.PIPE)
         self.isReflashing = False
 
     def addDetectCam(self, name, mode, status):
@@ -87,6 +124,23 @@ class DetectManager:
         """
         self.CameraModeList[name] = mode
         self.CameraState[name] = status
+        self.reflashingCamData()
+
+    # def push_frame(self):
+    #     # 防止多线程时 command 未被设置
+    #     while True:
+    #         if len(self.command) > 0:
+    #             # 管道配置
+    #             p = sp.Popen(self.command, stdin=sp.PIPE)
+    #
+    #     while True:
+    #         if self.deque:
+    #         # if  != True:
+    #             frame = self.frame_queue.get()
+    #             # process frame
+    #             # 你处理图片的代码
+    #             # write to pipe
+    #             p.stdin.write(frame.tostring())
 
     def Detect(self, data, current_time):
         temp_Dict = {}
@@ -94,7 +148,12 @@ class DetectManager:
             if not self.isReflashing:
                 # 可能會出錯 這裡要小心
                 predict = np.empty([1, 1, 1])
-                frame = base64.b64encode(raw_frame)
+
+                frame_original = base64.b64decode(raw_frame)
+                frame_as_np = np.frombuffer(frame_original, dtype=np.uint8)
+                frame = cv2.imdecode(frame_as_np, flags=1)
+
+                # frame = base64.b64encode(raw_frame)
                 mode = self.CameraModeList[name]
 
                 if mode == Mode.Room_Mode:
@@ -114,8 +173,12 @@ class DetectManager:
                     predict = self.NormalMode(frame)
 
                 # 要實作PUSH至RTSP SERVER
-                # temp_Dict[name] = base64.b64decode(predict)
+                # self.deque.append(predict)
+                pro = self.pushProcess[name]
+                pro.stdin.write(frame.tostring())
         # return temp_Dict
+
+
 
     def RoomMode(self, frame, current_time):
         predict, abandoned_objects = Dm.room_mode(frame, current_time)

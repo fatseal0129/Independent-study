@@ -7,7 +7,7 @@ from fastapi.responses import FileResponse
 from websockets.exceptions import ConnectionClosed
 import uvicorn
 from Server.Service import DetectManager, FileManager, DB
-from model import CameraInfo, MemberInfo
+from Server.Api.model import CameraInfo, MemberInfo
 from typing import Annotated
 
 app = FastAPI()

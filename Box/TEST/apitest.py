@@ -31,16 +31,16 @@ str_avatar = base64.b64encode(avatar_buffer).decode('utf-8')
 # cv2.imshow('My Image', image_buffer)
 # cv2.waitKey(0)
 # cv2.destroyAllWindows()
-
-data = {
-            "name": 'Zhuming',
-            'image': str_face,
-            'avatar': str_avatar,
-}
-
-r = requests.post(url="http://127.0.0.1:8000/member/add", json=data)
-if r.status_code == 200:
-    print(f'伺服器回傳: {r.text}')
-    print(f'{r.content}')
-else:
-    print(f'加入失敗！statusCode:{r.status_code}\nReason:{r.reason}')
+#
+# data = {
+#             "name": 'Zhuming',
+#             'image': str_face,
+#             'avatar': str_avatar,
+# }
+#
+# r = requests.post(url="http://127.0.0.1:8000/member/add", json=data)
+# if r.status_code == 200:
+#     print(f'伺服器回傳: {r.text}')
+#     print(f'{r.content}')
+# else:
+#     print(f'加入失敗！statusCode:{r.status_code}\nReason:{r.reason}')

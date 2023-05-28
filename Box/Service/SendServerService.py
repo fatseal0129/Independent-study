@@ -2,6 +2,7 @@ import threading
 # from collections import deque
 from websocket import WebSocketApp
 import requests
+import cv2
 import time
 import base64
 from Box.Service import CamService
@@ -50,7 +51,7 @@ class sendService:
             self.CameraState[name] = state
             self.camNum += 1
         else:
-            print(f'加入失敗！statusCode:{r.status_code}\nReason{r.reason}')
+            raise Exception(f'與伺服器創建連接失敗! Status.code:{r.status_code}\n Reason: {r.text}')
 
     def on_message(self, ws, message):
         """
@@ -73,8 +74,8 @@ class sendService:
         print("####### on_close #######")
 
     def on_open(self, ws):
-        self.camservice = CamService.CameraManager()
         print("與Server連接成功！ 開啟傳送通道...")
+        self.camservice = CamService.CameraManager()
         # 與server的thread
         connection_server = threading.Thread(target=self.sendmsg_server)
         connection_server.daemon = True
@@ -89,13 +90,17 @@ class sendService:
                 for camera_name in self.CameraModeList.keys():
                     if self.CameraState[camera_name] is False:
                         raw_frame = self.camservice.getCleanCameraFrame(camera_name)
-                        frame = base64.b64decode(raw_frame)
-                        cameraList[camera_name] = frame
+                        frame = base64.b64decode(raw_frame).decode('utf-8')
+                        _, frame_buffer = cv2.imencode('.jpg', frame)
+                        fix_frame = base64.b64encode(frame_buffer).decode('utf-8')
+                        cameraList[camera_name] = fix_frame
                 # 這時資料會裝著 {camName : frame(b64)}
                 self.ws.send(str(cameraList))
                 self.ws.send(str(current_time))
             else:
-                time.sleep(1)
+                time_end = time.time() + 1
+                while time.time() < time_end:
+                    continue
 
     def loadCamera(self):
         raw_state = requests.get(url=self.getcamstateurl)
@@ -106,7 +111,7 @@ class sendService:
                 state = state['state']
                 self.CameraState[name] = state
         else:
-            print(f'取得State失敗！statusCode:{raw_state.status_code}\nReason{raw_state.reason}')
+            raise Exception(f'取得State失敗！statusCode:{raw_state.status_code}\nReason{raw_state.reason}')
 
         raw_mode = requests.get(url=self.getcammodeurl)
         if raw_mode.status_code == 200:
@@ -115,9 +120,10 @@ class sendService:
                 name = mode['name']
                 mode = mode['mode']
                 self.CameraModeList[name] = mode
+                self.camNum += 1
         else:
-            print(f'取得Mode失敗！statusCode:{raw_mode.status_code}\nReason{raw_mode.reason}')
-        self.camNum += 1
+            raise Exception(f'取得Mode失敗！statusCode:{raw_mode.status_code}\nReason{raw_mode.reason}')
+
 
     def changeCameraMode(self, name, changed_mode):
         pass

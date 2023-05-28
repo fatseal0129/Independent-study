@@ -69,8 +69,8 @@ def saveImage(image, name, avatar):
     # 虛擬圖片影像檔名
     avatarFileName = name + '-avatar-' + datetime.datetime.now().strftime("%Y%m%d,%H_%M_%S") + '.png'
 
-    imagePath = os.path.join(os.path.dirname(os.getcwd()), 'FileData', 'Member', 'faces')
-    avatarPath = os.path.join(os.path.dirname(os.getcwd()), 'FileData', 'Member', 'avatar')
+    imagePath = os.path.join(os.getcwd(), "Server", 'FileData', 'Member', 'faces')
+    avatarPath = os.path.join(os.getcwd(), "Server", 'FileData', 'Member', 'avatar')
 
     #真人圖片儲存
     if not(cv2.imwrite(os.path.join(imagePath, imageFileName), image)):

@@ -11,13 +11,15 @@ from datetime import datetime
 class DetectMode:
     def __init__(self):
         # 載入偵測「人臉」model
-        self.model_faceDetectOnly = YOLO(os.path.join(os.path.dirname(os.getcwd()), 'yolo-weights', 'yolov8n-face.pt'))
+        # self.model_faceDetectOnly = YOLO(os.path.join(os.path.dirname(os.getcwd()), 'yolo-weights', 'yolov8n-face.pt'))
+        self.model_faceDetectOnly = YOLO(os.path.join(os.getcwd(), "Server", 'yolo-weights', 'yolov8n-face.pt'))
+
 
         # 讀取偵測「人臉」model的class名稱
         self.classNames_faceDetectOnly = self.model_faceDetectOnly.names
 
         # 載入偵測「人體」model
-        self.model_PersonDetectOnly = YOLO(os.path.join(os.path.dirname(os.getcwd()), 'yolo-weights', 'yolov8n.pt'))
+        self.model_PersonDetectOnly = YOLO(os.path.join(os.getcwd(), "Server", 'yolo-weights', 'yolov8n.pt'))
 
         # 讀取偵測「人體」model的class名稱
         self.classNames_PersonDetectOnly = self.model_PersonDetectOnly.names
