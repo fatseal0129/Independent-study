@@ -21,11 +21,3 @@
 # print(x)
 # import datetime
 # print(FileManager.TEST())
-manage = {}
-
-manage['13'] = 123
-
-if manage['23']:
-    print(f'有了拉')
-else:
-    print(f'沒找到')

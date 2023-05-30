@@ -47,6 +47,27 @@ class DatabaseService:
         print("新增完顯示結果：", result.acknowledged)
         return result.acknowledged
 
+    def changeCameraStatus(self, name: str, state: bool):
+        """
+        更新攝影機狀態
+        :param name:名字
+        :param state: 模式
+        :return:
+        """
+        raw_cam = self.col_Camera.find_one({"name": {"$regex": name}})
+        if raw_cam == '':
+            print("查無Camera資料！")
+            return False
+        mode = raw_cam['mode']
+        url = raw_cam['url']
+        if self.DeleteSingleCamera(name):
+            self.addCamera(name, mode, url, state)
+            return True
+        else:
+            print("刪除失敗！")
+            return False
+
+
 
     def addMemberToDatabase(self, name: str, imgfilename: str, avatarfilename: str,
                             avatarpath: str, imagepath: str) -> bool:
@@ -126,12 +147,17 @@ class DatabaseService:
 
     def getAllCamInfo(self):
         """
-        取得所有攝影機資料
+        取得所有攝影機[name, mode, url]資料
         :return:
         """
         cams = []
         for cam in self.col_Camera.find():
-            cams.append(cam)
+            data = {
+                "name": cam['name'],
+                "mode": cam['mode'],
+                "url": cam['url'],
+            }
+            cams.append(data)
         return cams
 
     def getAllCamMode(self):
@@ -171,6 +197,17 @@ class DatabaseService:
             }
             cams.append(data)
         return cams
+
+    def getCamState(self, name):
+        """
+        取得單一攝影機state資料
+        :return:
+        """
+        cam = self.col_Camera.find_one({"name": {"$regex": name}})
+        if cam is None:
+            return ''
+        else:
+            return cam['state']
 
     def getMemberAvatarPath(self, name: str = ''):
         """
@@ -426,6 +463,21 @@ class DatabaseService:
             print(result.deleted_count, "筆資料被刪除")
             return True
 
+    def DeleteSingleCamera(self, name):
+        """
+        刪除單一攝影機資料
+        :param name: 名字
+        :return:
+        """
+        if self.getCamState(name) == '':
+            print("刪除失敗！原因：查無攝影機資料")
+            return False
+        else:
+            result = self.col_Camera.delete_one({"name": {"$regex": name}})
+            print("Camera刪除成功！")
+            print(result.deleted_count, "筆Camera資料被刪除")
+            return True
+
 
     def DeleteAllSUS(self):
         """
@@ -437,6 +489,11 @@ class DatabaseService:
         print(x.deleted_count, "筆資料被刪除")
         return True
 
+    def DeleteAllCamera(self):
+        x = self.col_Camera.delete_many({})
+        print("刪除成功！")
+        print(x.deleted_count, "筆資料被刪除")
+        return True
 
 
     # def updateMember(self, name):

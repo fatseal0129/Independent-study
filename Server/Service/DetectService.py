@@ -5,6 +5,8 @@ from enum import Enum, unique
 from Server.Detect import Dm
 import subprocess as sp
 import cv2
+import os
+import signal
 from Server.Service import AlertManager, DB, FileManager
 import numpy as np
 
@@ -28,6 +30,7 @@ class DetectManager:
         self.deque = deque()
 
         self.pushProcess = dict()
+        self.threadList = dict()
 
         self.isReflashing = False
 
@@ -40,20 +43,21 @@ class DetectManager:
         self.isSusTime_Room_outside = False
         self.recordingTime_Room_outside = 0
 
-        self.rtmpUrl = ""
+        self.rtmpUrl = "rtsp://localhost:8554/teststream"
 
         self.command = ['ffmpeg',
                         '-y',
                         '-f', 'rawvideo',
                         '-vcodec', 'rawvideo',
                         '-pix_fmt', 'bgr24',
-                        '-s', f'{1280}x{720}',
-                        '-r', 20,
+                        '-s', '1280x720',
+                        '-r', "15",
                         '-i', '-',
                         '-c:v', 'libx264',
                         '-pix_fmt', 'yuv420p',
                         '-preset', 'ultrafast',
-                        '-f', 'flv',
+                        '-f', 'rtsp',
+                        '-rtsp_transport', 'tcp',
                         self.rtmpUrl]
 
         # command = ['ffmpeg',
@@ -93,6 +97,16 @@ class DetectManager:
         Dm.reflashing(names=names, facelist=facelist, encodelist=encodelist)
         print("刷新成功！.")
         self.isReflashing = False
+
+    def changeCameraStatus(self, name, status):
+        """
+        更改攝影機狀態
+        :param name:名字
+        :param status: 狀態
+        :return:
+        """
+        self.CameraState[name] = status
+
     def reflashingCamData(self):
         """
         刷新Cam資料
@@ -111,7 +125,9 @@ class DetectManager:
             state = states['state']
             self.CameraState[name] = state
             if len(self.command) > 0:
-                self.pushProcess[name] = sp.Popen(self.command, stdin=sp.PIPE)
+                self.addPushProcess(name)
+                # proc = sp.Popen(self.command, shell=False, stdin=sp.PIPE)
+                # self.pushProcess[name] = proc
         self.isReflashing = False
 
     def addDetectCam(self, name, mode, status):
@@ -124,7 +140,32 @@ class DetectManager:
         """
         self.CameraModeList[name] = mode
         self.CameraState[name] = status
-        self.reflashingCamData()
+        self.addPushProcess(name)
+
+    def deleteDetectCam(self, name):
+        proc = self.pushProcess[name]
+        th = self.threadList[name]
+        # 可能會出錯？
+        os.kill(proc.pid, signal.SIGINT)
+        proc.wait()
+        th.join()
+        del self.CameraModeList[name]
+        del self.CameraState[name]
+        del self.pushProcess[name]
+        del self.threadList[name]
+
+    def addPushProcess(self, name):
+        print(f'新增新的Process: {name}')
+        def createProc_thread_func():
+            proc = sp.Popen(self.command, shell=False, stdin=sp.PIPE)
+            self.pushProcess[name] = proc
+
+        createProc_thread = threading.Thread(target=createProc_thread_func, args=())
+        createProc_thread.daemon = True
+        createProc_thread.start()
+        self.threadList[name] = createProc_thread
+
+
 
     # def push_frame(self):
     #     # 防止多线程时 command 未被设置
@@ -144,11 +185,11 @@ class DetectManager:
 
     def Detect(self, data, current_time):
         temp_Dict = {}
+
         for name, raw_frame in data.items():
             if not self.isReflashing:
                 # 可能會出錯 這裡要小心
                 predict = np.empty([1, 1, 1])
-
                 frame_original = base64.b64decode(raw_frame)
                 frame_as_np = np.frombuffer(frame_original, dtype=np.uint8)
                 frame = cv2.imdecode(frame_as_np, flags=1)
@@ -175,7 +216,7 @@ class DetectManager:
                 # 要實作PUSH至RTSP SERVER
                 # self.deque.append(predict)
                 pro = self.pushProcess[name]
-                pro.stdin.write(frame.tostring())
+                pro.stdin.write(frame.tobytes())
         # return temp_Dict
 
 

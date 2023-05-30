@@ -5,6 +5,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 from Box.Service import CamService
+# from typing import Annotated
 import Box.Service.SendServerService as sendService
 app = FastAPI()
 app.add_middleware(
@@ -22,10 +23,10 @@ serverManager = sendService.sendService()
 # 新增攝影機
 @app.post('/camera/add')
 async def createCamera(info: Cameta_info):
-    print(info.url)
+    # 這之後要改一下
     try:
         # 新增攝影機
-        camManager.createCamera(url=info.url, name=info.name, initial_mode=info.init_mode)
+        camManager.createCamera(url=0, name=info.name, initial_mode=info.init_mode)
 
     except KeyError:
         return {"message": "名字已存在！"}
@@ -33,21 +34,37 @@ async def createCamera(info: Cameta_info):
         return {"message": f'不知名錯誤, 原因:{e}'}
     # 與伺服器建立連線
     try:
-        serverManager.createConnect_to_Server(name=info.name, mode=info.init_mode, state=True, url=info.url)
+        serverManager.createConnect_to_Server(name=info.name, mode=info.init_mode, state=False, url=info.url)
     except Exception as e:
         return {"message": f'{e}'}
     return {"message": f'success'}
 
-# 刪除攝影機
-@app.delete('/camera/delete')
-async def DeleteCamera(name: str):
+# 開始攝影機
+@app.get('/camera/status/resume/{name}')
+async def cameraResume(name: str):
+    try:
+        serverManager.changeCameraResume(name)
+    except Exception as e:
+        return {"message": f'不知名錯誤, 原因:{e}'}
+    return {"message": f'success'}
 
-    ## 要實作資料庫要刪除攝影機
-    result = camManager.cleanCamera(name)
-    if result:
-        return {"message": "success"}
-    else:
-        return {"message": "Fail!"}
+# 暫停攝影機
+@app.get('/camera/status/paused/{name}')
+async def cameraPaused(name: str):
+    try:
+        serverManager.changeCameraPaused(name)
+    except Exception as e:
+        return {"message": f'不知名錯誤, 原因:{e}'}
+    return {"message": f'success'}
+
+# 刪除攝影機
+@app.delete('/camera/delete/{name}')
+async def DeleteCamera(name: str):
+    try:
+        camManager.cleanCamera(name)
+        serverManager.cleanConnection(name)
+    except Exception as e:
+        return {"message": f'刪除失敗！ 原因:{e}'}
 
 # 更改攝影機模式
 

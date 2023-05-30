@@ -10,3 +10,7 @@ class MemberInfo(BaseModel):
     name: str
     image: Any
     avatar: Any
+
+class CameraStateInfo(BaseModel):
+    name: str
+    state: bool

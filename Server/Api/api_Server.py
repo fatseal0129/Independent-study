@@ -1,5 +1,7 @@
 # 與BOX的websocket連接 Client端使用websocket-client
 import base64
+import asyncio
+import datetime
 import os
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Path
 from fastapi.middleware.cors import CORSMiddleware
@@ -7,8 +9,9 @@ from fastapi.responses import FileResponse
 from websockets.exceptions import ConnectionClosed
 import uvicorn
 from Server.Service import DetectManager, FileManager, DB
-from Server.Api.model import CameraInfo, MemberInfo
+from Server.Api.model import CameraInfo, MemberInfo, CameraStateInfo
 from typing import Annotated
+import cv2
 
 app = FastAPI()
 app.add_middleware(
@@ -37,16 +40,50 @@ async def getCameraState():
     states = DB.getAllCamName_with_State()
     return states
 
+
 # 取得攝影機資料
 @app.get('/server/camera/caminfo')
 async def getCameraState():
     info = DB.getAllCamInfo()
     return info
 
+
+
+
+
+
+
+
 # 設置攝影機模式
 @app.get('/server/camera/setmode/{mode}')
 async def setCameraMode(mode: str):
     pass
+
+
+
+
+
+
+
+
+
+
+# 設置攝影機暫停
+@app.get('/server/camera/setstate/paused')
+async def setCameraPause(cam_info: CameraStateInfo):
+    if DB.changeCameraStatus(cam_info.name, cam_info.state):
+        DetectManager.changeCameraStatus(cam_info.name, cam_info.state)
+
+# 設置攝影機開始
+@app.get('/server/camera/setstate/resume')
+async def setCameraResume(cam_info: CameraStateInfo):
+    if DB.changeCameraStatus(cam_info.name, cam_info.state):
+        DetectManager.changeCameraStatus(cam_info.name, cam_info.state)
+
+@app.delete('/server/camera/delete/{name}')
+async def deleteCamera(name: str):
+    if DB.DeleteSingleCamera(name):
+        DetectManager.deleteDetectCam(name)
 
 # 編輯成員
 @app.put('/member/edit/{oldname}')
@@ -124,7 +161,9 @@ async def getAllMember():
         print(f'取得temp_avatar_list失敗! 原因：{e}')
         return {"name": "FileNotFoundError", "avatar": "FileNotFoundError"}
     for pic, name in zip(temp_avatar_list, names):
-        encode_pic = base64.b64encode(pic)
+        # encode_pic = base64.b64encode(pic).decode('utf-8')
+        _, avatar_buffer = cv2.imencode('.jpg', pic)
+        encode_pic = base64.b64encode(avatar_buffer).decode('utf-8')
         allMember.append({
             "name": name,
             "avatar": encode_pic
@@ -138,16 +177,16 @@ async def getSUSVideo(videopath: Annotated[str, Path(title="影片路徑")]):
     if videopath in paths:
         return FileResponse(videopath)
     else:
-        return {"message": "FileNotFound!"}
+        return {"message": "FileNotFoundError"}
 
 # 取得單個可疑人士照片
-@app.get('/sus/get/video/{imagepath}')
+@app.get('/sus/get/image/{imagepath}')
 async def getSUSImage(imagepath: Annotated[str, Path(title="照片路徑")]):
     paths = DB.getAllSUSImagePath()
     if imagepath in paths:
         return FileResponse(imagepath)
     else:
-        return {"message": "FileNotFound!"}
+        return {"message": "FileNotFoundError"}
 
 # 取得全部可疑人士資訊
 @app.get('/sus/get/all')
@@ -169,16 +208,41 @@ async def getALLSUSMember():
 @app.websocket("/ws")
 async def read_webscoket(websocket: WebSocket):
     await websocket.accept()
+
+    #     async def read_from_socket(websocket: WebSocket):
+    #         nonlocal Mode
+    #         async for data in websocket.iter_text():
+    #             Mode = data
+    #
+    #     asyncio.create_task(read_from_socket(websocket))
+    #     try:
+    #         while True:
+    #             if Mode == "Onbutton":
+    #                 predict.put(dm.forRoom_faceon_detect(main_frames.get()))
+    #             elif Mode == "OFF!":
+    #                 predict.put(dm.forRoom_faceoff_detect(main_frames.get()))
+    #             elif Mode == "Outside":
+    #                 predict.put(dm.forOutDoor(main_frames.get()))
+    #             print(f"Now Mode: {Mode}")
+    #             _, encodedImage = cv2.imencode(".jpg", predict.get())
+    #             await websocket.send_bytes(encodedImage.tobytes())
+    #             await asyncio.sleep(0.01)
+
+
+    print(f'與Box的websocket連接成功！')
     try:
         while True:
             raw_data = await websocket.receive_text()
             raw_time = await websocket.receive_text()
+            # print(f'now is Predict!{raw_data}')
             if raw_data == "{}":
                 continue
             else:
+                # print(f'send Time: {raw_time}\n\n\n\n\n')
                 data = eval(raw_data)
-                current_time = eval(raw_time)
+                current_time = datetime.datetime.strptime(raw_time, '%Y-%m-%d %H:%M:%S.%f')
                 DetectManager.Detect(data, current_time)
+            await asyncio.sleep(0.01)
     except WebSocketDisconnect:
         print("Box Disconnected! reason: 'WebSocketDisconnect'")
     except ConnectionClosed:
