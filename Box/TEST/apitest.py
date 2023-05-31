@@ -11,11 +11,16 @@ _, face_buffer = cv2.imencode('.jpg', raw_face)
 
 str_face = base64.b64encode(face_buffer).decode('utf-8')
 
-raw_faceavatar = cv2.imread('Avatar-Zhuming.png')
 
-_, avatar_buffer = cv2.imencode('.jpg', raw_faceavatar)
 
-str_avatar = base64.b64encode(avatar_buffer).decode('utf-8')
+
+
+
+# raw_faceavatar = cv2.imread('Avatar-Zhuming.png')
+#
+# _, avatar_buffer = cv2.imencode('.jpg', raw_faceavatar)
+#
+# str_avatar = base64.b64encode(avatar_buffer).decode('utf-8')
 
 
 

@@ -6,6 +6,7 @@ from requests.exceptions import ConnectionError
 class CameraManager:
     def __init__(self):
         self.CameraList = {}
+        # self.getcaminfourl = 'http://140.118.110.201:8000/server/camera/caminfo'
         self.getcaminfourl = 'http://127.0.0.1:8000/server/camera/caminfo'
         self.loadCamera()
 
@@ -14,10 +15,10 @@ class CameraManager:
             raw_state = requests.get(url=self.getcaminfourl)
             if raw_state.status_code == 200:
                 cam_state = raw_state.json()
-                for cam in cam_state:
-                    name = cam['name']
-                    mode = cam['mode']
-                    url = cam['url']
+                for camera in cam_state:
+                    name = camera['name']
+                    mode = camera['mode']
+                    url = camera['url']
                     self.createCamera(eval(url), name, mode)
             else:
                 print(f'[CameraService] 取得camInfo失敗！statusCode:{raw_state.status_code}\nReason:{raw_state.reason}')
@@ -31,14 +32,16 @@ class CameraManager:
         :param name: 名字/場地
         :return:
         """
-        cam = self.CameraList[name]
-        return cam.getFrame()
+        camera = self.CameraList[name]
+        return camera.getFrame()
 
     def getCamStatus_paused(self, name):
-        return self.CameraList[name].getStatus_paused()
+        camera = self.CameraList[name]
+        return camera.getStatus_paused()
 
     def getCamStatus_online(self, name):
-        return self.CameraList[name].getStatus_online()
+        camera = self.CameraList[name]
+        return camera.getStatus_online()
 
     def resumeCamera(self, name):
         """
@@ -46,8 +49,8 @@ class CameraManager:
         :param name: 名字/場地
         :return:
         """
-        cam = self.CameraList[name]
-        cam.resume()
+        camera = self.CameraList[name]
+        camera.resume()
 
     def pauseCamera(self, name):
         """
@@ -55,8 +58,8 @@ class CameraManager:
         :param name: 名字/場地
         :return:
         """
-        cam = self.CameraList[name]
-        cam.pause()
+        camera = self.CameraList[name]
+        camera.pause()
 
     def createCamera(self, url, name, initial_mode):
         """
@@ -80,8 +83,8 @@ class CameraManager:
         :param name:名字/場地
         :return:
         """
-        cam = self.CameraList[name]
-        cam.cleanUP()
+        camera = self.CameraList[name]
+        camera.cleanUP()
         del self.CameraList[name]
 
 

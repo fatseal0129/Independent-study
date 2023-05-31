@@ -26,8 +26,8 @@ async def createCamera(info: Cameta_info):
     # 這之後要改一下
     try:
         # 新增攝影機
-        camManager.createCamera(url=0, name=info.name, initial_mode=info.init_mode)
-
+        # camManager.createCamera(url=0, name=info.name, initial_mode=info.init_mode)
+        pass
     except KeyError:
         return {"message": "名字已存在！"}
     except Exception as e:

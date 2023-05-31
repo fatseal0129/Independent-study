@@ -64,26 +64,50 @@ async def setCameraMode(mode: str):
 
 
 
+@app.post('/server/camera/getproc/{name}')
+async def getProcStatus(name: str):
+    try:
+        if DetectManager.isProcessTerminate(name):
+            return {'message': f'{name} procHasBeenKill'}
+        return{'message': f'{name} not been kill'}
+    except KeyError as e:
+        return {'message': f'{name} Not Found!'}
 
 
 
 
 # 設置攝影機暫停
-@app.get('/server/camera/setstate/paused')
+@app.post('/server/camera/setstate/paused')
 async def setCameraPause(cam_info: CameraStateInfo):
-    if DB.changeCameraStatus(cam_info.name, cam_info.state):
-        DetectManager.changeCameraStatus(cam_info.name, cam_info.state)
+    try:
+        if DetectManager.isProcessTerminate(cam_info.name):
+            return {'message': 'procHasBeenKill'}
+        if DB.changeCameraStatus(cam_info.name, cam_info.state):
+            DetectManager.pauseProcess(cam_info.name)
+            return {'message': 'success'}
+        return {'message': 'fail'}
+    except KeyError as e:
+        return {'message': f'{cam_info.name} Not Found!'}
 
 # 設置攝影機開始
-@app.get('/server/camera/setstate/resume')
+@app.post('/server/camera/setstate/resume')
 async def setCameraResume(cam_info: CameraStateInfo):
-    if DB.changeCameraStatus(cam_info.name, cam_info.state):
-        DetectManager.changeCameraStatus(cam_info.name, cam_info.state)
+    try:
+        if not DetectManager.isProcessTerminate(cam_info.name):
+            return {'message': 'procisrunning'}
+        if DB.changeCameraStatus(cam_info.name, cam_info.state):
+            DetectManager.resumeProcess(cam_info.name)
+            return {'message': 'success'}
+        return {'message': 'fail'}
+    except KeyError as e:
+        return {'message': f'{cam_info.name} Not Found!'}
 
 @app.delete('/server/camera/delete/{name}')
 async def deleteCamera(name: str):
     if DB.DeleteSingleCamera(name):
         DetectManager.deleteDetectCam(name)
+        return {'message':'success'}
+    return {'message': f'{name}NotFound'}
 
 # 編輯成員
 @app.put('/member/edit/{oldname}')

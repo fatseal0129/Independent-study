@@ -8,6 +8,7 @@ import base64
 from Box.Service import CamService
 import datetime
 
+
 class sendService:
     def __init__(self):
         # 這邊應當要與CameraService, DetectService同步
@@ -17,10 +18,9 @@ class sendService:
 
         self.ws = None
 
-        self.camservice = None
+        # self.camservice = None
         self.isUsingNum = False
         self.camNum = 0
-
 
         self.wsurl = "ws://127.0.0.1:8000/ws"
         self.addcamurl = 'http://127.0.0.1:8000/server/add/Detect'
@@ -33,6 +33,7 @@ class sendService:
 
         self.loadCamera()
         print('[SendService] Camera Loading完成！')
+        self.camservice = None
         time.sleep(1)
 
         websocket_created = threading.Thread(target=self.createWebSocket)
@@ -92,53 +93,75 @@ class sendService:
         print("[SendService] 與Server連接成功！ 開啟傳送通道...")
         self.camservice = CamService.CameraManager()
         # 與server連接的thread
-        connection_server = threading.Thread(target=self.sendmsg_server)
+        print("[SendService] websocket傳送通道開啟，3秒後開始傳送")
+        connection_server = threading.Thread(target=self.sendmsg_server, args=(self.camservice,))
         connection_server.daemon = True
         connection_server.start()
 
-    def sendmsg_server(self):
+    def sendmsg_server(self, camservice):
+        time_end_ = time.time() + 3
+        while time.time() < time_end_:
+            continue
+        print("[SendService] 開始向Server傳送Frame")
         while True:
             if self.camNum > 0:
                 now_current_time = datetime.datetime.now()
                 current_time = now_current_time.strftime('%Y-%m-%d %H:%M:%S.%f')
                 cameraList = {}
-                for camera_name in self.CameraModeList.keys():
-                    # print(f'傳送raw_frame:{camera_name}')
-                    # 是否驗證成功
-                    online = self.camservice.getCamStatus_online(camera_name)
-                    # 是否是暫停狀態
-                    state = self.camservice.getCamStatus_paused(camera_name)
-                    # 檢查驗證狀況
-                    if not online:
-                        print(f'[SendService] 目前{camera_name}等待驗證中，10秒後重試...')
-                        time_end = time.time() + 10
-                        while time.time() < time_end:
-                            temp_online = self.camservice.getCamStatus_online(camera_name)
-                            if temp_online:
-                                print(f'[SendService] {camera_name}驗證成功！ 開始傳送Frame...')
-                                break
-                    # 檢查暫停情況
-                    elif state:
-                        print(f'[SendService] 目前{camera_name}正暫停作業中，20秒自動檢查...')
-                        time_end = time.time() + 20
-                        while time.time() < time_end:
-                            temp_state = self.camservice.getCamStatus_paused(camera_name)
-                            if not temp_state:
-                                self.CameraState[camera_name] = temp_state
-                                print(f'[SendService] {camera_name}已啟用！ 開始傳送Frame...')
-                                break
-                    elif online:
-                        raw_frame = self.camservice.getCleanCameraFrame(camera_name)
-                        # frame = base64.b64decode(raw_frame).decode('utf-8')
-                        _, frame_buffer = cv2.imencode('.jpg', raw_frame)
-                        fix_frame = base64.b64encode(frame_buffer).decode('utf-8')
-                        cameraList[camera_name] = fix_frame
-                # 這時資料會裝著 {camName : frame(b64)}
-                self.ws.send(str(cameraList))
-                self.ws.send(current_time)
-                # 是否要停止
+                try:
+                    for camera_name in self.CameraModeList.keys():
+                        # print(f'傳送raw_frame:{camera_name}')
+                        # 是否是暫停狀態
+                        # state = self.camservice.getCamStatus_paused(camera_name)
+                        state = camservice.getCamStatus_paused(camera_name)
+                        # 是否驗證成功
+                        # online = self.camservice.getCamStatus_online(camera_name)
+                        online = camservice.getCamStatus_online(camera_name)
+                        # 檢查驗證狀況
+                        if not online:
+                            print(f'[SendService] 目前{camera_name}等待驗證中，10秒後重試...')
+                            time_end = time.time() + 10
+                            while time.time() < time_end:
+                                # temp_online = self.camservice.getCamStatus_online(camera_name)
+                                temp_online = camservice.getCamStatus_online(camera_name)
+                                if temp_online:
+                                    print(f'[SendService] {camera_name}驗證成功！ 3秒後開始傳送Frame...')
+                                    time_end_2 = time.time() + 3
+                                    while time.time() < time_end_2:
+                                        continue
+                                    break
+                        # 檢查暫停情況
+                        elif state:
+                            print(f'[SendService] 目前{camera_name}正暫停作業中，20秒自動檢查...')
+                            time_end = time.time() + 20
+                            while time.time() < time_end:
+                                # temp_state = self.camservice.getCamStatus_paused(camera_name)
+                                temp_state = camservice.getCamStatus_paused(camera_name)
+                                if not temp_state:
+                                    self.CameraState[camera_name] = temp_state
+                                    print(f'[SendService] {camera_name}已啟用！ 開始傳送Frame...')
+                                    break
+                        elif online and not state:
+                            # raw_frame = self.camservice.getCleanCameraFrame(camera_name)
+                            raw_frame = camservice.getCleanCameraFrame(camera_name)
+                            # frame = base64.b64decode(raw_frame).decode('utf-8')
+                            _, frame_buffer = cv2.imencode('.jpg', raw_frame)
+                            fix_frame = base64.b64encode(frame_buffer).decode('utf-8')
+                            cameraList[camera_name] = fix_frame
+                    # 這時資料會裝著 {camName : frame(b64)}
+                    # print(f'time: {current_time}')
+                    self.ws.send(str(cameraList))
+                    self.ws.send(current_time)
+                    # 是否要停止
+                except KeyError as e:
+                    print(f'[SendService] 偵測攝影機新增！2秒後刷新...')
+                    camservice.loadCamera()
+                    time_end = time.time() + 2
+                    while time.time() < time_end:
+                        continue
             else:
-                time_end = time.time() + 1
+                print("[SendService] 目前沒有攝影機，啟動5秒自動刷新...")
+                time_end = time.time() + 5
                 while time.time() < time_end:
                     continue
 
@@ -151,7 +174,8 @@ class sendService:
                 state = state['state']
                 self.CameraState[name] = state
         else:
-            raise Exception(f'[SendService] 取得CamState失敗！statusCode:{raw_state.status_code}\nReason{raw_state.reason}')
+            raise Exception(
+                f'[SendService] 取得CamState失敗！statusCode:{raw_state.status_code}\nReason{raw_state.reason}')
 
         raw_mode = requests.get(url=self.getcammodeurl)
         if raw_mode.status_code == 200:
@@ -178,8 +202,6 @@ class sendService:
             self.CameraState[name] = True
         else:
             raise Exception(f'[SendService] 與伺服器溝通「暫停」失敗! Status.code:{r.status_code}\n Reason: {r.text}')
-
-
 
     def changeCameraResume(self, name):
         print(f'[SendService] {name} 準備開始！')
@@ -210,7 +232,6 @@ class sendService:
             print(f'[SendService] {name} 清除連線成功！')
         else:
             raise Exception(f'[SendService] 伺服器端溝通「刪除」失敗! Status.code:{r.status_code}\n Reason: {r.text}')
-
 
     def cleanAllConnection(self):
         pass

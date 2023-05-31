@@ -27,6 +27,9 @@ class DetectManager:
         # 儲存Camera是否有暫停
         self.CameraState = {}
 
+        # 暫停序列
+        self.pauseWaitList = {}
+
         self.deque = deque()
 
         self.pushProcess = dict()
@@ -43,7 +46,7 @@ class DetectManager:
         self.isSusTime_Room_outside = False
         self.recordingTime_Room_outside = 0
 
-        self.rtmpUrl = "rtsp://localhost:8554/teststream"
+        self.rtmpUrl = "rtsp://140.118.149.228:8554/teststream"
 
         self.command = ['ffmpeg',
                         '-y',
@@ -51,7 +54,7 @@ class DetectManager:
                         '-vcodec', 'rawvideo',
                         '-pix_fmt', 'bgr24',
                         '-s', '1280x720',
-                        '-r', "15",
+                        '-r', "30",
                         '-i', '-',
                         '-c:v', 'libx264',
                         '-pix_fmt', 'yuv420p',
@@ -88,14 +91,14 @@ class DetectManager:
         :return:
         """
         self.isReflashing = True
-        print("偵測到新人臉！刷新中....")
+        print("[DetectService] 偵測到新人臉！刷新中....")
         names = DB.getAllMemberNames()
         facelist = FileManager.loadingKnowFace(filenameList=DB.getAllMemberImageFileNames(),
                                                pathList=DB.getAllMemberImagePath())
         encodelist = FileManager.encodeFace(facelist)
 
         Dm.reflashing(names=names, facelist=facelist, encodelist=encodelist)
-        print("刷新成功！.")
+        print("[DetectService] 刷新成功！.")
         self.isReflashing = False
 
     def changeCameraStatus(self, name, status):
@@ -145,17 +148,28 @@ class DetectManager:
     def deleteDetectCam(self, name):
         proc = self.pushProcess[name]
         th = self.threadList[name]
-        # 可能會出錯？
-        os.kill(proc.pid, signal.SIGINT)
-        proc.wait()
-        th.join()
+        # os.kill(proc.pid, signal.SIGINT)
+        proc.kill()
+        proc.wait(3)
+        # th.join()
         del self.CameraModeList[name]
         del self.CameraState[name]
         del self.pushProcess[name]
         del self.threadList[name]
 
+    def isProcessTerminate(self,name):
+        """
+        process是否被中止了？
+        :param name:
+        :return:
+        """
+        proc = self.pushProcess[name]
+        if proc is None:
+            return True
+        return False
+
     def addPushProcess(self, name):
-        print(f'新增新的Process: {name}')
+        print(f'[DetectService] 新增新的Process: {name}')
         def createProc_thread_func():
             proc = sp.Popen(self.command, shell=False, stdin=sp.PIPE)
             self.pushProcess[name] = proc
@@ -165,23 +179,22 @@ class DetectManager:
         createProc_thread.start()
         self.threadList[name] = createProc_thread
 
+    def pauseProcess(self, name):
+        print(f'[DetectService] 暫停Process: {name}')
+        proc = self.pushProcess[name]
+        # th = self.threadList[name]
+        proc.kill()
+        proc.wait(3)
+        # th.join()
+        self.CameraState[name] = True
+        del self.pushProcess[name]
+        del self.threadList[name]
 
 
-    # def push_frame(self):
-    #     # 防止多线程时 command 未被设置
-    #     while True:
-    #         if len(self.command) > 0:
-    #             # 管道配置
-    #             p = sp.Popen(self.command, stdin=sp.PIPE)
-    #
-    #     while True:
-    #         if self.deque:
-    #         # if  != True:
-    #             frame = self.frame_queue.get()
-    #             # process frame
-    #             # 你处理图片的代码
-    #             # write to pipe
-    #             p.stdin.write(frame.tostring())
+    def resumeProcess(self, name):
+        print(f'[DetectService] 恢復Process: {name}')
+        self.addPushProcess(name)
+
 
     def Detect(self, data, current_time):
         temp_Dict = {}
@@ -210,7 +223,7 @@ class DetectManager:
                     predict = self.RoomOutsideMode(frame, current_time)
 
                 else:
-                    print(f'Mode not exist! {name} using Normal mode')
+                    print(f'[DetectService] Mode not exist! {name} using Normal mode')
                     predict = self.NormalMode(frame)
 
                 # 要實作PUSH至RTSP SERVER
