@@ -6,6 +6,7 @@ from Server.Detect import Dm
 import subprocess as sp
 import cv2
 import os
+import time
 import signal
 from Server.Service import AlertManager, DB, FileManager
 import numpy as np
@@ -46,7 +47,7 @@ class DetectManager:
         self.isSusTime_Room_outside = False
         self.recordingTime_Room_outside = 0
 
-        self.rtmpUrl = "rtsp://140.118.149.228:8554/teststream"
+        self.rtmpUrl = "rtsp://140.118.149.29:8554/teststream"
 
         self.command = ['ffmpeg',
                         '-y',
@@ -62,6 +63,8 @@ class DetectManager:
                         '-f', 'rtsp',
                         '-rtsp_transport', 'tcp',
                         self.rtmpUrl]
+
+
 
         # command = ['ffmpeg',
         #            '-y',
@@ -101,14 +104,16 @@ class DetectManager:
         print("[DetectService] 刷新成功！.")
         self.isReflashing = False
 
-    def changeCameraStatus(self, name, status):
-        """
-        更改攝影機狀態
-        :param name:名字
-        :param status: 狀態
-        :return:
-        """
-        self.CameraState[name] = status
+
+
+    # def changeCameraStatus(self, name, status):
+    #     """
+    #     更改攝影機狀態
+    #     :param name:名字
+    #     :param status: 狀態
+    #     :return:
+    #     """
+    #     self.CameraState[name] = status
 
     def reflashingCamData(self):
         """
@@ -156,6 +161,21 @@ class DetectManager:
         del self.CameraState[name]
         del self.pushProcess[name]
         del self.threadList[name]
+        self.reflashingCamData()
+
+    def cleanUpAllDetectCam(self):
+        # tempNameList = []
+        print(f'[DetectService] 偵測斷線！ 執行清除所有subprocess...')
+        for name, proc in self.pushProcess.items():
+            print(f'[DetectService] 清除subprocess: {name}')
+            proc.kill()
+            proc.wait(3)
+            # self.CameraState[name] = True
+            # tempNameList.append(name)
+        # for name in tempNameList:
+        #     print(f'[DetectService] 清除thread與subprocess資料: {name}')
+        #     del self.pushProcess[name]
+            # del self.threadList[name]
 
     def isProcessTerminate(self,name):
         """
@@ -198,38 +218,45 @@ class DetectManager:
 
     def Detect(self, data, current_time):
         temp_Dict = {}
+        try:
+            for name, raw_frame in data.items():
+                if not self.isReflashing:
+                    # 可能會出錯 這裡要小心
+                    predict = np.empty([1, 1, 1])
+                    frame_original = base64.b64decode(raw_frame)
+                    frame_as_np = np.frombuffer(frame_original, dtype=np.uint8)
+                    frame = cv2.imdecode(frame_as_np, flags=1)
 
-        for name, raw_frame in data.items():
-            if not self.isReflashing:
-                # 可能會出錯 這裡要小心
-                predict = np.empty([1, 1, 1])
-                frame_original = base64.b64decode(raw_frame)
-                frame_as_np = np.frombuffer(frame_original, dtype=np.uint8)
-                frame = cv2.imdecode(frame_as_np, flags=1)
+                    # frame = base64.b64encode(raw_frame)
+                    mode = self.CameraModeList[name]
 
-                # frame = base64.b64encode(raw_frame)
-                mode = self.CameraModeList[name]
+                    if mode == Mode.Room_Mode:
+                        predict = self.RoomMode(frame, current_time)
 
-                if mode == Mode.Room_Mode:
-                    predict = self.RoomMode(frame, current_time)
+                    elif mode == Mode.Normal_Mode:
+                        predict = self.NormalMode(frame)
 
-                elif mode == Mode.Normal_Mode:
-                    predict = self.NormalMode(frame)
+                    elif mode == Mode.Outdoor_Mode:
+                        predict = self.OutDoorMode(frame, current_time)
 
-                elif mode == Mode.Outdoor_Mode:
-                    predict = self.OutDoorMode(frame, current_time)
+                    elif mode == Mode.Room_Outside_Mode:
+                        predict = self.RoomOutsideMode(frame, current_time)
 
-                elif mode == Mode.Room_Outside_Mode:
-                    predict = self.RoomOutsideMode(frame, current_time)
+                    else:
+                        print(f'[DetectService] Mode not exist! {name} using Normal mode')
+                        predict = self.NormalMode(frame)
 
-                else:
-                    print(f'[DetectService] Mode not exist! {name} using Normal mode')
-                    predict = self.NormalMode(frame)
+                    # 要實作PUSH至RTSP SERVER
+                    # self.deque.append(predict)
+                    pro = self.pushProcess[name]
+                    pro.stdin.write(predict.tobytes())
+        except KeyError:
+            print('[DetectService] 偵測刪除攝影機，進行5秒防刷新...')
+            time_end = time.time() + 5
+            while time.time() < time_end:
+                continue
 
-                # 要實作PUSH至RTSP SERVER
-                # self.deque.append(predict)
-                pro = self.pushProcess[name]
-                pro.stdin.write(frame.tobytes())
+                # pro.stdin.write(frame.tobytes())
         # return temp_Dict
 
 

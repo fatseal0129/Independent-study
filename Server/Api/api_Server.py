@@ -45,6 +45,7 @@ async def getCameraState():
 @app.get('/server/camera/caminfo')
 async def getCameraState():
     info = DB.getAllCamInfo()
+    DetectManager.reflashingCamData()
     return info
 
 
@@ -63,7 +64,7 @@ async def setCameraMode(mode: str):
 
 
 
-
+# 取得執行序
 @app.post('/server/camera/getproc/{name}')
 async def getProcStatus(name: str):
     try:
@@ -72,8 +73,6 @@ async def getProcStatus(name: str):
         return{'message': f'{name} not been kill'}
     except KeyError as e:
         return {'message': f'{name} Not Found!'}
-
-
 
 
 # 設置攝影機暫停
@@ -102,6 +101,8 @@ async def setCameraResume(cam_info: CameraStateInfo):
     except KeyError as e:
         return {'message': f'{cam_info.name} Not Found!'}
 
+
+# 刪除攝影機
 @app.delete('/server/camera/delete/{name}')
 async def deleteCamera(name: str):
     if DB.DeleteSingleCamera(name):
@@ -123,19 +124,25 @@ async def editMember(oldname: str, new_member: MemberInfo):
     oldavatarpath = DB.getMemberAvatarPath(oldname)
     oldavatarfilename = DB.getMemberAvatarFileName(oldname)
 
-    if FileManager.DeleteImage(path=oldimgpath, filename=oldimgfilename) and \
-            FileManager.DeleteImage(path=oldavatarpath, filename=oldavatarfilename) and DB.DeleteMember(oldname):
-        try:
-            imageFileName, imagePath, avatarFileName, avatarPath = FileManager.saveImage(new_image, new_avatar, new_member.name)
-        except Exception as e:
-            return {"message": f'寫入檔案失敗, 原因：{e}'}
-        if DB.addMemberToDatabase(name=new_member.name, imgfilename=imageFileName, avatarfilename=avatarFileName,
-                                  avatarpath=avatarPath, imagepath=imagePath):
-            DetectManager.reflashingDetectData()
-            return {"message": "success"}
-        return {"message": "寫入資料庫失敗！"}
-    else:
-        return {"message": "刪除失敗！原因：查無資料"}
+    try:
+        FileManager.DeleteImage(path=oldimgpath, filename=oldimgfilename)
+        FileManager.DeleteImage(path=oldavatarpath, filename=oldavatarfilename)
+    except Exception as e:
+        return {"message": f'File delete error! reason:{e}'}
+    result, _ = DB.DeleteMember(oldname)
+    if not result:
+        return {"message": f'Database delete error!'}
+
+    try:
+        imageFileName, imagePath, avatarFileName, avatarPath = FileManager.saveImage(new_image, new_member.name, new_avatar)
+    except Exception as e:
+        return {"message": f'寫入檔案失敗, 原因：{e}'}
+    if DB.addMemberToDatabase(name=new_member.name, imgfilename=imageFileName, avatarfilename=avatarFileName,
+                              avatarpath=avatarPath, imagepath=imagePath):
+        DetectManager.reflashingDetectData()
+        return {"message": "success"}
+    return {"message": "寫入資料庫失敗！"}
+
 
 
 # 刪除人員
@@ -173,6 +180,10 @@ async def addMember(member: MemberInfo):
 async def getAllMember():
     allMember = []
     temp_avatar_list = list()
+    x = 0
+    y = int(4096/5)
+    w = 3072
+    h = 3072
 
     avatarpath = DB.getAllMemberAvatarPath()
     avatarfilename = DB.getAllMemberAvatarFileNames()
@@ -186,7 +197,8 @@ async def getAllMember():
         return {"name": "FileNotFoundError", "avatar": "FileNotFoundError"}
     for pic, name in zip(temp_avatar_list, names):
         # encode_pic = base64.b64encode(pic).decode('utf-8')
-        _, avatar_buffer = cv2.imencode('.jpg', pic)
+        repic = pic[y:y+h, x:x+w]
+        _, avatar_buffer = cv2.imencode('.jpg', repic)
         encode_pic = base64.b64encode(avatar_buffer).decode('utf-8')
         allMember.append({
             "name": name,
@@ -196,7 +208,7 @@ async def getAllMember():
 
 # 取得單個可疑人士影片
 @app.get('/sus/get/video/{videopath}')
-async def getSUSVideo(videopath: Annotated[str, Path(title="影片路徑")]):
+async def getSUSVideo(videopath: str):
     paths = DB.getAllSUSVideoPath()
     if videopath in paths:
         return FileResponse(videopath)
@@ -205,7 +217,7 @@ async def getSUSVideo(videopath: Annotated[str, Path(title="影片路徑")]):
 
 # 取得單個可疑人士照片
 @app.get('/sus/get/image/{imagepath}')
-async def getSUSImage(imagepath: Annotated[str, Path(title="照片路徑")]):
+async def getSUSImage(imagepath: str):
     paths = DB.getAllSUSImagePath()
     if imagepath in paths:
         return FileResponse(imagepath)
@@ -268,7 +280,8 @@ async def read_webscoket(websocket: WebSocket):
                 DetectManager.Detect(data, current_time)
             await asyncio.sleep(0.01)
     except WebSocketDisconnect:
-        print("Box Disconnected! reason: 'WebSocketDisconnect'")
+        print("Box Disconnected! reason: 'WebSocketDisconnect'\n")
+        DetectManager.cleanUpAllDetectCam()
     except ConnectionClosed:
         print("Box Disconnected! reason: 'ConnectionClosed'")
 

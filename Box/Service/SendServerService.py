@@ -22,11 +22,15 @@ class sendService:
         self.isUsingNum = False
         self.camNum = 0
 
+        self.cleaning = False
+
         self.wsurl = "ws://127.0.0.1:8000/ws"
         self.addcamurl = 'http://127.0.0.1:8000/server/add/Detect'
 
         self.pausedcamurl = 'http://127.0.0.1:8000/server/camera/setstate/paused'
         self.resumecamurl = 'http://127.0.0.1:8000/server/camera/setstate/resume'
+
+        self.deletecamurl = 'http://127.0.0.1:8000/server/camera/delete/'
 
         self.getcamstateurl = 'http://127.0.0.1:8000/server/camera/stateinfo'
         self.getcammodeurl = 'http://127.0.0.1:8000/server/camera/modeinfo'
@@ -83,11 +87,15 @@ class sendService:
         pass
 
     def on_error(self, ws, error):
-        print("####### on_error #######")
-        print(f'error: {error}')
+        print("[SendService] 不正常關閉Box訊號! 清除連線...")
+        for name in self.CameraModeList.keys():
+            self.cleanConnection(name)
 
     def on_close(self, ws, close_status_code, close_msg):
-        print("####### on_close #######")
+        pass
+        # print("[SendService] 不正常關閉Box訊號! 清除連線...")
+        # for name in self.CameraModeList.keys():
+        #     self.cleanConnection(name)
 
     def on_open(self, ws):
         print("[SendService] 與Server連接成功！ 開啟傳送通道...")
@@ -104,7 +112,7 @@ class sendService:
             continue
         print("[SendService] 開始向Server傳送Frame")
         while True:
-            if self.camNum > 0:
+            if self.camNum > 0 and not self.cleaning:
                 now_current_time = datetime.datetime.now()
                 current_time = now_current_time.strftime('%Y-%m-%d %H:%M:%S.%f')
                 cameraList = {}
@@ -154,13 +162,13 @@ class sendService:
                     self.ws.send(current_time)
                     # 是否要停止
                 except KeyError as e:
-                    print(f'[SendService] 偵測攝影機新增！2秒後刷新...')
+                    print(f'[SendService] 偵測攝影機新增！5秒後刷新...')
                     camservice.loadCamera()
-                    time_end = time.time() + 2
+                    time_end = time.time() + 5
                     while time.time() < time_end:
                         continue
             else:
-                print("[SendService] 目前沒有攝影機，啟動5秒自動刷新...")
+                print("[SendService] 目前沒有攝影機或是正在刷新攝影機中，啟動5秒自動刷新...")
                 time_end = time.time() + 5
                 while time.time() < time_end:
                     continue
@@ -221,10 +229,8 @@ class sendService:
         pass
 
     def cleanConnection(self, name):
-        data = {
-            "name": name
-        }
-        r = requests.post(url=self.addcamurl, json=data)
+        self.cleaning = True
+        r = requests.delete(url=self.deletecamurl+name)
         if r.status_code == 200:
             del self.CameraModeList[name]
             del self.CameraState[name]
@@ -232,6 +238,7 @@ class sendService:
             print(f'[SendService] {name} 清除連線成功！')
         else:
             raise Exception(f'[SendService] 伺服器端溝通「刪除」失敗! Status.code:{r.status_code}\n Reason: {r.text}')
+        self.cleaning = False
 
     def cleanAllConnection(self):
         pass

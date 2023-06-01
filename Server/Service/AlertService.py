@@ -17,7 +17,7 @@ class AlertSUS:
 
     def createWriter(self, current_time, frame):
         output_params = {"-fourcc": "mp4v", "-fps": 20}
-        fix_current_time = current_time.strftime('%y-%m-%d_%H:%M:%S')
+        fix_current_time = current_time.strftime('%y-%m-%d_%H-%M-%S')
 
         output_vid_path = os.path.join(os.getcwd(), "Server", 'FileData', 'SUSPeople', "Video")
         output_vid_name = f'SUSVideo-{fix_current_time}.mp4'
