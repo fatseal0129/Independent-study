@@ -47,22 +47,22 @@ class DetectManager:
         self.isSusTime_Room_outside = False
         self.recordingTime_Room_outside = 0
 
-        self.rtmpUrl = "rtsp://140.118.149.29:8554/teststream"
+        self.rtmpUrl = 'rtsp://localhost:8554/stream/'
 
-        self.command = ['ffmpeg',
-                        '-y',
-                        '-f', 'rawvideo',
-                        '-vcodec', 'rawvideo',
-                        '-pix_fmt', 'bgr24',
-                        '-s', '1280x720',
-                        '-r', "30",
-                        '-i', '-',
-                        '-c:v', 'libx264',
-                        '-pix_fmt', 'yuv420p',
-                        '-preset', 'ultrafast',
-                        '-f', 'rtsp',
-                        '-rtsp_transport', 'tcp',
-                        self.rtmpUrl]
+        # self.command = ['ffmpeg',
+        #                 '-y',
+        #                 '-f', 'rawvideo',
+        #                 '-vcodec', 'rawvideo',
+        #                 '-pix_fmt', 'bgr24',
+        #                 '-s', '1280x720',
+        #                 '-r', "30",
+        #                 '-i', '-',
+        #                 '-c:v', 'libx264',
+        #                 '-pix_fmt', 'yuv420p',
+        #                 '-preset', 'ultrafast',
+        #                 '-f', 'rtsp',
+        #                 '-rtsp_transport', 'tcp',
+        #                 self.rtmpUrl]
 
 
 
@@ -132,8 +132,8 @@ class DetectManager:
             name = states['name']
             state = states['state']
             self.CameraState[name] = state
-            if len(self.command) > 0:
-                self.addPushProcess(name)
+        # if len(self.command) > 0:
+            self.addPushProcess(name)
                 # proc = sp.Popen(self.command, shell=False, stdin=sp.PIPE)
                 # self.pushProcess[name] = proc
         self.isReflashing = False
@@ -170,6 +170,7 @@ class DetectManager:
             print(f'[DetectService] 清除subprocess: {name}')
             proc.kill()
             proc.wait(3)
+            AlertManager.cleanUp()
             # self.CameraState[name] = True
             # tempNameList.append(name)
         # for name in tempNameList:
@@ -190,8 +191,22 @@ class DetectManager:
 
     def addPushProcess(self, name):
         print(f'[DetectService] 新增新的Process: {name}')
+        commend = ['ffmpeg',
+                   '-y',
+                   '-f', 'rawvideo',
+                   '-vcodec', 'rawvideo',
+                   '-pix_fmt', 'bgr24',
+                   '-s', '1280x720',
+                   '-r', "30",
+                   '-i', '-',
+                   '-c:v', 'libx264',
+                   '-pix_fmt', 'yuv420p',
+                   '-preset', 'ultrafast',
+                   '-f', 'rtsp',
+                   '-rtsp_transport', 'tcp',
+                   self.rtmpUrl + name]
         def createProc_thread_func():
-            proc = sp.Popen(self.command, shell=False, stdin=sp.PIPE)
+            proc = sp.Popen(commend, shell=False, stdin=sp.PIPE)
             self.pushProcess[name] = proc
 
         createProc_thread = threading.Thread(target=createProc_thread_func, args=())
@@ -231,13 +246,13 @@ class DetectManager:
                     mode = self.CameraModeList[name]
 
                     if mode == Mode.Room_Mode:
-                        predict = self.RoomMode(frame, current_time)
+                        predict = self.RoomMode(frame, current_time, name)
 
                     elif mode == Mode.Normal_Mode:
                         predict = self.NormalMode(frame)
 
                     elif mode == Mode.Outdoor_Mode:
-                        predict = self.OutDoorMode(frame, current_time)
+                        predict = self.OutDoorMode(frame, current_time, name)
 
                     elif mode == Mode.Room_Outside_Mode:
                         predict = self.RoomOutsideMode(frame, current_time)
@@ -261,7 +276,7 @@ class DetectManager:
 
 
 
-    def RoomMode(self, frame, current_time):
+    def RoomMode(self, frame, current_time, cam_name):
         predict, abandoned_objects = Dm.room_mode(frame, current_time)
 
         if len(abandoned_objects) > 0:
@@ -269,7 +284,7 @@ class DetectManager:
                 data = AlertManager.createWriter(current_time, frame)
                 # 實作資料庫
                 DB.addAmogus(data['id'], data['current_time'], data['output_vid_path'], data['output_img_path'],
-                             data['output_vid_name'], data['output_img_name'])
+                             data['output_vid_name'], data['output_img_name'], cam_name)
                 self.recordingTime_Room = current_time
                 self.isSusTime_Room = True
         else:
@@ -286,7 +301,7 @@ class DetectManager:
                         lineType=cv2.LINE_AA)
         return predict
 
-    def OutDoorMode(self, frame, current_time):
+    def OutDoorMode(self, frame, current_time, cam_name):
         predict, abandoned_objects = Dm.outdoor_mode(frame, current_time)
 
         if len(abandoned_objects) > 0:
@@ -294,7 +309,7 @@ class DetectManager:
                 data = AlertManager.createWriter(current_time, frame)
                 # 實作資料庫
                 DB.addAmogus(data['id'], data['current_time'], data['output_vid_path'], data['output_img_path'],
-                             data['output_vid_name'], data['output_img_name'])
+                             data['output_vid_name'], data['output_img_name'], cam_name)
                 self.recordingTime_outdoor = current_time
                 self.isSusTime_outdoor = True
         else:
@@ -315,7 +330,7 @@ class DetectManager:
     def NormalMode(self, frame):
         return Dm.normal_mode(frame)
 
-    def RoomOutsideMode(self, frame, current_time):
+    def RoomOutsideMode(self, frame, current_time, cam_name):
         predict, abandoned_objects = Dm.room_mode_goOutside(frame, current_time)
 
         if len(abandoned_objects) > 0 and (self.isSusTime_Room_outside is False):
@@ -323,7 +338,7 @@ class DetectManager:
             data = AlertManager.createWriter(current_time, frame)
             # 實作資料庫
             DB.addAmogus(data['id'], data['current_time'], data['output_vid_path'], data['output_img_path'],
-                         data['output_vid_name'], data['output_img_name'])
+                         data['output_vid_name'], data['output_img_name'], cam_name)
             self.isSusTime_Room_outside = True
         elif (current_time - self.recordingTime_Room_outside).seconds > 10:
             self.isSusTime_Room_outside = False

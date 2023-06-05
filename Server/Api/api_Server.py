@@ -48,6 +48,12 @@ async def getCameraState():
     DetectManager.reflashingCamData()
     return info
 
+# 取得攝影機資料(New)
+@app.get('/server/camera/info')
+async def getCameraState():
+    info = DB.getAllCamInfo()
+    return info
+
 
 
 
@@ -208,19 +214,21 @@ async def getAllMember():
 
 # 取得單個可疑人士影片
 @app.get('/sus/get/video/{videopath}')
-async def getSUSVideo(videopath: str):
-    paths = DB.getAllSUSVideoPath()
-    if videopath in paths:
-        return FileResponse(videopath)
+async def getSUSVideo(videoname: str):
+    names = DB.getAllSUSVideoNames()
+    path = os.path.join(os.getcwd(), "Server", 'FileData', 'SUSPeople', "Video")
+    if videoname in names:
+        return FileResponse(os.path.join(path, videoname))
     else:
         return {"message": "FileNotFoundError"}
 
 # 取得單個可疑人士照片
 @app.get('/sus/get/image/{imagepath}')
-async def getSUSImage(imagepath: str):
-    paths = DB.getAllSUSImagePath()
-    if imagepath in paths:
-        return FileResponse(imagepath)
+async def getSUSImage(imagename: str):
+    names = DB.getAllSUSImageNames()
+    path = os.path.join(os.getcwd(), "Server", 'FileData', 'SUSPeople', "Image")
+    if imagename in names:
+        return FileResponse(os.path.join(path, imagename))
     else:
         return {"message": "FileNotFoundError"}
 
@@ -231,12 +239,15 @@ async def getALLSUSMember():
     temp_sus_list = DB.getAllSUS()
 
     for imposter in temp_sus_list:
-        videopath = os.path.join(imposter['videoPath'], imposter['vidFilename'])
-        imagepath = os.path.join(imposter['imagePath'], imposter['imgFilename'])
+        # videopath = os.path.join(imposter['videoPath'], imposter['vidFilename'])
+        videopath = imposter['vidFilename']
+        # imagepath = os.path.join(imposter['imagePath'], imposter['imgFilename'])
+        imagepath = imposter['imgFilename']
         sus = {
             "appear_time": imposter['appear'],
             "videopath": videopath,
-            "imagepath": imagepath
+            "imagepath": imagepath,
+            "place": imposter['place']
         }
         allSUS.append(sus)
     return allSUS

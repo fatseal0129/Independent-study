@@ -39,6 +39,17 @@ async def createCamera(info: Cameta_info):
         return {"message": f'{e}'}
     return {"message": f'success'}
 
+# 取得攝影機截圖
+@app.get('/camera/screenshot/{name}')
+async def cameraResume(name: str):
+    try:
+        frame = camManager.getScreenShot(name)
+    except Exception as e:
+        return {"message": f'不知名錯誤, 原因:{e}'}
+    return {"message": frame}
+
+
+
 # 開始攝影機
 @app.get('/camera/status/resume/{name}')
 async def cameraResume(name: str):

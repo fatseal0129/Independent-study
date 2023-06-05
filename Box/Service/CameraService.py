@@ -1,6 +1,8 @@
 import sys
 
 import Box.Camera.Camera as cam
+import cv2
+import base64
 import requests
 from requests.exceptions import ConnectionError
 class CameraManager:
@@ -19,7 +21,10 @@ class CameraManager:
                     name = camera['name']
                     mode = camera['mode']
                     url = camera['url']
-                    self.createCamera(eval(url), name, mode)
+                    if eval(url) == 0:
+                        self.createCamera(0, name, mode)
+                    else:
+                        self.createCamera(url, name, mode)
             else:
                 print(f'[CameraService] 取得camInfo失敗！statusCode:{raw_state.status_code}\nReason:{raw_state.reason}')
         except ConnectionError as e:
@@ -34,6 +39,13 @@ class CameraManager:
         """
         camera = self.CameraList[name]
         return camera.getFrame()
+
+    def getScreenShot(self, name):
+        camera = self.CameraList[name]
+        frame = camera.getFirstFrame()
+        _, frame_buffer = cv2.imencode('.jpg', frame)
+        str_frame = base64.b64encode(frame_buffer).decode('utf-8')
+        return str_frame
 
     def getCamStatus_paused(self, name):
         camera = self.CameraList[name]

@@ -92,7 +92,7 @@ class DatabaseService:
         return result.acknowledged
 
     def addAmogus(self, Id:int, currentTime, videoPath:str = "", imagePath:str = "",
-                  vidFilename:str = "", imgFilename:str= "") -> bool:
+                  vidFilename:str = "", imgFilename:str= "", cam_name:str="") -> bool:
         """
         新增可疑人士
         :param Id: ID
@@ -101,6 +101,7 @@ class DatabaseService:
         :param imagePath: 圖片路徑
         :param vidFilename: 影片檔名
         :param imgFilename: 圖片
+        :param cam_name: 出現位置
         :return:
         """
         data = {
@@ -109,7 +110,8 @@ class DatabaseService:
             "imagePath": imagePath,
             "videoPath": videoPath,
             "vidFilename": vidFilename,
-            "imgFilename": imgFilename
+            "imgFilename": imgFilename,
+            "place": cam_name
         }
         result = self.col_Amogus.insert_one(data)
         print("新增完顯示結果：", result.acknowledged)

@@ -15,6 +15,9 @@ class Camera(threading.Thread):
         # 攝影機初始模式
         self.mode = initial_mode
 
+        # 截圖
+        self.firstFrame = None
+
         self.online = False
         self.capture = None
 
@@ -39,7 +42,8 @@ class Camera(threading.Thread):
             if self.verify_network_stream(self.url):
                 self.capture = cv2.VideoCapture(self.url)
                 self.online = True
-                print(f'[Cam Thread] 攝影機{self.url}驗證成功！')
+                _, self.firstFrame = self.capture.read()
+                print(f'[Cam Thread] 攝影機{self.url}驗證成功！ 並成功截圖！')
                 self.resume()
 
         self.load_stream_thread = threading.Thread(target=load_network_stream_thread, args=())
@@ -95,7 +99,8 @@ class Camera(threading.Thread):
                     # Read next frame from stream and insert into deque
                     status, frame = self.capture.read()
                     if status:
-                        self.deque.append(frame)
+                        re_frame = cv2.resize(frame, (1280, 720), interpolation=cv2.INTER_AREA)
+                        self.deque.append(re_frame)
                     else:
                         self.capture.release()
                         self.online = False
@@ -125,6 +130,9 @@ class Camera(threading.Thread):
 
         if self.deque and self.online:
             return self.deque[-1]
+
+    def getFirstFrame(self):
+        return self.firstFrame
 
     def spin(self, seconds):
         """

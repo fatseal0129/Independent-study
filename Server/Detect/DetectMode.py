@@ -19,6 +19,7 @@ class DetectMode:
         self.classNames_faceDetectOnly = self.model_faceDetectOnly.names
 
         # 載入偵測「人體」model
+        # self.model_PersonDetectOnly = YOLO(os.path.join(os.getcwd(), "Server", 'yolo-weights', 'yolov8n.pt'))
         self.model_PersonDetectOnly = YOLO(os.path.join(os.getcwd(), "Server", 'yolo-weights', 'yolov8n.pt'))
 
         # 讀取偵測「人體」model的class名稱
@@ -59,7 +60,7 @@ class DetectMode:
         self.abandoned_temp = {}
 
         # ID持續多久(秒)會變成可疑人物
-        self.susLimitTime = 20
+        self.susLimitTime = 60
 
         # 取得所有人名
         self.existfaceName = []

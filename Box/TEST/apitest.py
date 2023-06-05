@@ -4,12 +4,12 @@ import io
 import numpy as np
 from PIL import Image
 import base64
-
-raw_face = cv2.imread('Face-Zhuming.png')
-
-_, face_buffer = cv2.imencode('.jpg', raw_face)
-
-str_face = base64.b64encode(face_buffer).decode('utf-8')
+#
+# raw_face = cv2.imread('Face-Zhuming.png')
+#
+# _, face_buffer = cv2.imencode('.jpg', raw_face)
+#
+# str_face = base64.b64encode(face_buffer).decode('utf-8')
 
 
 
