@@ -24,16 +24,24 @@ class sendService:
 
         self.cleaning = False
 
-        self.wsurl = "ws://127.0.0.1:8000/ws"
-        self.addcamurl = 'http://127.0.0.1:8000/server/add/Detect'
+        self.wsurl = "ws://211.21.74.23:8000/ws"
+        self.addcamurl = 'http://211.21.74.23:8000/server/add/Detect'
+        self.pausedcamurl = 'http://211.21.74.23:8000/server/camera/setstate/paused'
+        self.resumecamurl = 'http://211.21.74.23:8000/server/camera/setstate/resume'
+        self.deletecamurl = 'http://211.21.74.23:8000/server/camera/delete/'
+        self.getcamstateurl = 'http://211.21.74.23:8000/server/camera/stateinfo'
+        self.getcammodeurl = 'http://211.21.74.23:8000/server/camera/modeinfo'
 
-        self.pausedcamurl = 'http://127.0.0.1:8000/server/camera/setstate/paused'
-        self.resumecamurl = 'http://127.0.0.1:8000/server/camera/setstate/resume'
+        ################
+        #
+        # self.wsurl = "ws://127.0.0.1:8000/ws"
+        # self.addcamurl = 'http://127.0.0.1:8000/server/add/Detect'
+        # self.pausedcamurl = 'http://127.0.0.1:8000/server/camera/setstate/paused'
+        # self.resumecamurl = 'http://127.0.0.1:8000/server/camera/setstate/resume'
+        # self.deletecamurl = 'http://127.0.0.1:8000/server/camera/delete/'
+        # self.getcamstateurl = 'http://127.0.0.1:8000/server/camera/stateinfo'
+        # self.getcammodeurl = 'http://127.0.0.1:8000/server/camera/modeinfo'
 
-        self.deletecamurl = 'http://127.0.0.1:8000/server/camera/delete/'
-
-        self.getcamstateurl = 'http://127.0.0.1:8000/server/camera/stateinfo'
-        self.getcammodeurl = 'http://127.0.0.1:8000/server/camera/modeinfo'
 
         self.loadCamera()
         print('[SendService] Camera Loading完成！')

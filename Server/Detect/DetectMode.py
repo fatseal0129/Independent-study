@@ -47,7 +47,7 @@ class DetectMode:
 
         self.center_points_face = {}
         self.abandoned_temp_face = {}
-        self.susLimitTime_face = 10
+        self.susLimitTime_face = 43205+10
 
         # 保留ID的 counts （counts作為偵測是否停留太久）
         # 當有新物件的id被檢測到會被賦予新的id 這個作為目前id的計數器
@@ -60,7 +60,7 @@ class DetectMode:
         self.abandoned_temp = {}
 
         # ID持續多久(秒)會變成可疑人物
-        self.susLimitTime = 60
+        self.susLimitTime = 43205+60
 
         # 取得所有人名
         self.existfaceName = []
@@ -152,7 +152,7 @@ class DetectMode:
                             # Increase count for the object
                             # self.abandoned_temp[id] += 1
                             print(
-                                f'now the object has exist for: {(datetime.now() - self.abandoned_temp[id]).seconds} seconds')
+                                f'now the object has exist for: {(datetime.now() - self.abandoned_temp[id]).seconds-43205} seconds')
                     break
 
             if same_object_detected is False:

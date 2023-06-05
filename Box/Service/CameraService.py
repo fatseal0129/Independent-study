@@ -9,7 +9,8 @@ class CameraManager:
     def __init__(self):
         self.CameraList = {}
         # self.getcaminfourl = 'http://140.118.110.201:8000/server/camera/caminfo'
-        self.getcaminfourl = 'http://127.0.0.1:8000/server/camera/caminfo'
+        self.getcaminfourl = 'http://211.21.74.23:8000/server/camera/caminfo'
+        # self.getcaminfourl = 'http://127.0.0.1:8000/server/camera/caminfo'
         self.loadCamera()
 
     def loadCamera(self):

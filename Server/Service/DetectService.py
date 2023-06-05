@@ -171,6 +171,25 @@ class DetectManager:
             proc.kill()
             proc.wait(3)
             AlertManager.cleanUp()
+
+            print(f'[DetectService] 重置物件辨識計算...')
+            mode = self.CameraModeList[name]
+
+            if mode == Mode.Room_Mode:
+                predict = self.RoomMode(frame, current_time, name)
+
+            elif mode == Mode.Normal_Mode:
+                predict = self.NormalMode(frame)
+
+            elif mode == Mode.Outdoor_Mode:
+                predict = self.OutDoorMode(frame, current_time, name)
+
+            elif mode == Mode.Room_Outside_Mode:
+                predict = self.RoomOutsideMode(frame, current_time, name)
+
+            else:
+                print(f'[DetectService] Mode not exist! {name} using Normal mode')
+                predict = self.NormalMode(frame)
             # self.CameraState[name] = True
             # tempNameList.append(name)
         # for name in tempNameList:
@@ -255,7 +274,7 @@ class DetectManager:
                         predict = self.OutDoorMode(frame, current_time, name)
 
                     elif mode == Mode.Room_Outside_Mode:
-                        predict = self.RoomOutsideMode(frame, current_time)
+                        predict = self.RoomOutsideMode(frame, current_time, name)
 
                     else:
                         print(f'[DetectService] Mode not exist! {name} using Normal mode')

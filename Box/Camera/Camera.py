@@ -9,7 +9,7 @@ class Camera(threading.Thread):
         super(Camera, self).__init__()
 
         # 用來存放frame的deque
-        self.deque = deque()
+        self.deque = deque(maxlen=30)
         # 攝影機連接
         self.url = url
         # 攝影機初始模式

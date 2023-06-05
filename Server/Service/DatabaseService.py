@@ -125,6 +125,7 @@ class DatabaseService:
         imposter = []
         for sus in self.col_Amogus.find():
             imposter.append(sus)
+            print(f'sus!{sus}')
         return imposter
 
     def getAllMemberData(self):
