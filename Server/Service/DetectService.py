@@ -1,4 +1,5 @@
 import base64
+import datetime
 import threading
 from collections import deque
 from enum import Enum, unique
@@ -45,7 +46,7 @@ class DetectManager:
         self.recordingTime_Room = 0
 
         self.isSusTime_Room_outside = False
-        self.recordingTime_Room_outside = 0
+        self.recordingTime_Room_outside = datetime.datetime.now()
 
         self.rtmpUrl = 'rtsp://localhost:8554/stream/'
 
@@ -86,8 +87,6 @@ class DetectManager:
         # 進行人臉刷新
         self.reflashingDetectData()
 
-
-
     def reflashingDetectData(self):
         """
         刷新Detect人臉資料
@@ -103,17 +102,6 @@ class DetectManager:
         Dm.reflashing(names=names, facelist=facelist, encodelist=encodelist)
         print("[DetectService] 刷新成功！.")
         self.isReflashing = False
-
-
-
-    # def changeCameraStatus(self, name, status):
-    #     """
-    #     更改攝影機狀態
-    #     :param name:名字
-    #     :param status: 狀態
-    #     :return:
-    #     """
-    #     self.CameraState[name] = status
 
     def reflashingCamData(self):
         """
@@ -171,25 +159,7 @@ class DetectManager:
             proc.kill()
             proc.wait(3)
             AlertManager.cleanUp()
-
-            print(f'[DetectService] 重置物件辨識計算...')
-            mode = self.CameraModeList[name]
-
-            if mode == Mode.Room_Mode:
-                predict = self.RoomMode(frame, current_time, name)
-
-            elif mode == Mode.Normal_Mode:
-                predict = self.NormalMode(frame)
-
-            elif mode == Mode.Outdoor_Mode:
-                predict = self.OutDoorMode(frame, current_time, name)
-
-            elif mode == Mode.Room_Outside_Mode:
-                predict = self.RoomOutsideMode(frame, current_time, name)
-
-            else:
-                print(f'[DetectService] Mode not exist! {name} using Normal mode')
-                predict = self.NormalMode(frame)
+            Dm.reset()
             # self.CameraState[name] = True
             # tempNameList.append(name)
         # for name in tempNameList:

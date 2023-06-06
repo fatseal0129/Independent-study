@@ -1,4 +1,4 @@
 import uvicorn
 
 if __name__ == '__main__':
-    uvicorn.run('Box.Api.api_frontend:app')
+    uvicorn.run('Box.Api.api_frontend:app', host= "172.20.10.11")

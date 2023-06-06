@@ -22,7 +22,7 @@ class CameraManager:
                     name = camera['name']
                     mode = camera['mode']
                     url = camera['url']
-                    if eval(url) == 0:
+                    if url == "0":
                         self.createCamera(0, name, mode)
                     else:
                         self.createCamera(url, name, mode)

@@ -82,6 +82,15 @@ class DetectMode:
 
         # encode所有人臉
         self.existFaceEncoding = encodelist
+
+    def reset(self):
+        self.center_points.clear()
+        self.center_points_face.clear()
+        self.center_points_moved.clear()
+        self.abandoned_temp.clear()
+        self.abandoned_temp_face.clear()
+        self.moved_temp.clear()
+
     def outdoor_mode(self, origin_image, current_time):
         """
         戶外模式
@@ -151,8 +160,7 @@ class DetectMode:
                         else:
                             # Increase count for the object
                             # self.abandoned_temp[id] += 1
-                            print(
-                                f'now the object has exist for: {(datetime.now() - self.abandoned_temp[id]).seconds-43205} seconds')
+                            print(f'now the object has exist for: {(datetime.now() - self.abandoned_temp[id]).seconds-43205} seconds')
                     break
 
             if same_object_detected is False:
