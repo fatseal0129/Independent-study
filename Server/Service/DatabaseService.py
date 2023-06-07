@@ -44,7 +44,7 @@ class DatabaseService:
                 "state": state}
 
         result = self.col_Camera.insert_one(data)
-        print("新增完顯示結果：", result.acknowledged)
+        print("[DatabaseService] 新增完顯示結果：", result.acknowledged)
         return result.acknowledged
 
     def changeCameraStatus(self, name: str, state: bool):
@@ -56,7 +56,7 @@ class DatabaseService:
         """
         raw_cam = self.col_Camera.find_one({"name": {"$regex": name}})
         if raw_cam == '':
-            print("查無Camera資料！")
+            print("[DatabaseService] 查無Camera資料！")
             return False
         mode = raw_cam['mode']
         url = raw_cam['url']
@@ -64,10 +64,28 @@ class DatabaseService:
             self.addCamera(name, mode, url, state)
             return True
         else:
-            print("刪除失敗！")
+            print("[DatabaseService] 刪除失敗！")
             return False
 
-
+    def changeCameraMode(self, name: str, mode: str):
+        """
+        更新攝影機模式
+        :param name:名字
+        :param mode: 模式
+        :return:
+        """
+        raw_cam = self.col_Camera.find_one({"name": {"$regex": name}})
+        if raw_cam == '':
+            print("[DatabaseService] 查無Camera資料！")
+            return False
+        state = raw_cam['state']
+        url = raw_cam['url']
+        if self.DeleteSingleCamera(name):
+            self.addCamera(name, mode, url, state)
+            return True
+        else:
+            print("[DatabaseService] 更新失敗！ 原因： 刪除失敗")
+            return False
 
     def addMemberToDatabase(self, name: str, imgfilename: str, avatarfilename: str,
                             avatarpath: str, imagepath: str) -> bool:
@@ -88,7 +106,7 @@ class DatabaseService:
                 "imagepath": imagepath}
 
         result = self.col_Member.insert_one(data)
-        print("新增完顯示結果：", result.acknowledged)
+        print("[DatabaseService] 新增完顯示結果：", result.acknowledged)
         return result.acknowledged
 
     def addAmogus(self, Id:int, currentTime, videoPath:str = "", imagePath:str = "",
@@ -114,7 +132,7 @@ class DatabaseService:
             "place": cam_name
         }
         result = self.col_Amogus.insert_one(data)
-        print("新增完顯示結果：", result.acknowledged)
+        print("[DatabaseService] 新增完顯示結果：", result.acknowledged)
         return result.acknowledged
 
     def getAllSUS(self):
@@ -125,7 +143,6 @@ class DatabaseService:
         imposter = []
         for sus in self.col_Amogus.find():
             imposter.append(sus)
-            print(f'sus!{sus}')
         return imposter
 
     def getAllMemberData(self):
@@ -421,7 +438,7 @@ class DatabaseService:
         imgname = ''
         avatarname = ''
         if self.getMemberImageFileName(name) == '':
-            print("刪除失敗！原因：查無資料")
+            print("[DatabaseService] 刪除失敗！原因：查無資料")
             return False, data
         else:
             imgname = self.getMemberImageFileName(name)
@@ -435,7 +452,7 @@ class DatabaseService:
                 "avatarpath": avatarpath
             }
             x = self.col_Member.delete_one({"name": {"$regex": name}})
-            print("刪除成功！")
+            print("[DatabaseService] 刪除成功！")
             print(x.deleted_count, "筆資料被刪除")
             return True, data
 
@@ -458,11 +475,11 @@ class DatabaseService:
         :return: 是否刪除成功，找不到資料也會回傳False
         """
         if self.getSUSImageName(current_time) == '':
-            print("刪除失敗！原因：查無資料")
+            print("[DatabaseService] 刪除失敗！原因：查無資料")
             return False
         else:
             result = self.col_Amogus.delete_one({"appear": {"$regex": current_time}})
-            print("刪除成功！")
+            print("[DatabaseService] 刪除成功！")
             print(result.deleted_count, "筆資料被刪除")
             return True
 
@@ -473,11 +490,11 @@ class DatabaseService:
         :return:
         """
         if self.getCamState(name) == '':
-            print("刪除失敗！原因：查無攝影機資料")
+            print("[DatabaseService] 刪除失敗！原因：查無攝影機資料")
             return False
         else:
             result = self.col_Camera.delete_one({"name": {"$regex": name}})
-            print("Camera刪除成功！")
+            print("[DatabaseService] Camera刪除成功！")
             print(result.deleted_count, "筆Camera資料被刪除")
             return True
 
@@ -488,13 +505,13 @@ class DatabaseService:
         :return: 是否刪除成功
         """
         x = self.col_Amogus.delete_many({})
-        print("刪除成功！")
+        print("[DatabaseService] 刪除成功！")
         print(x.deleted_count, "筆資料被刪除")
         return True
 
     def DeleteAllCamera(self):
         x = self.col_Camera.delete_many({})
-        print("刪除成功！")
+        print("[DatabaseService] 刪除成功！")
         print(x.deleted_count, "筆資料被刪除")
         return True
 

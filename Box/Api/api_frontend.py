@@ -1,6 +1,6 @@
 import base64
 # import time
-from Box.Api.models import Cameta_info
+from Box.Api.models import Camera_info, Camera_change_mode
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
@@ -22,7 +22,7 @@ serverManager = sendService.sendService()
 
 # 新增攝影機
 @app.post('/camera/add')
-async def createCamera(info: Cameta_info):
+async def createCamera(info: Camera_info):
     # 這之後要改一下
     try:
         # 新增攝影機
@@ -48,7 +48,15 @@ async def cameraResume(name: str):
         return {"message": f'不知名錯誤, 原因:{e}'}
     return {"message": frame}
 
-
+# 更換攝影機模式
+@app.post('/camera/changemode')
+async def changeCameraMode(info: Camera_change_mode):
+    try:
+        # serverManager.changeCameraResume(name)
+        serverManager.changeCameraMode(info.name, info.mode)
+    except Exception as e:
+        return {"message": f'不知名錯誤, 原因:{e}'}
+    return {"message": f'success'}
 
 # 開始攝影機
 @app.get('/camera/status/resume/{name}')
@@ -76,8 +84,7 @@ async def DeleteCamera(name: str):
         serverManager.cleanConnection(name)
     except Exception as e:
         return {"message": f'刪除失敗！ 原因:{e}'}
-
-# 更改攝影機模式
+    return {"message": f'success'}
 
 if __name__ == "__main__":
     uvicorn.run("api:app", reload=True)

@@ -14,3 +14,7 @@ class MemberInfo(BaseModel):
 class CameraStateInfo(BaseModel):
     name: str
     state: bool
+
+class CameraModeInfo(BaseModel):
+    name: str
+    mode: str

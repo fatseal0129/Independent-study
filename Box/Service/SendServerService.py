@@ -31,6 +31,7 @@ class sendService:
         self.deletecamurl = 'http://211.21.74.23:8000/server/camera/delete/'
         self.getcamstateurl = 'http://211.21.74.23:8000/server/camera/stateinfo'
         self.getcammodeurl = 'http://211.21.74.23:8000/server/camera/modeinfo'
+        self.changemodeurl = 'http://211.21.74.23:8000/server/camera/setmode'
 
         ################
         #
@@ -41,6 +42,7 @@ class sendService:
         # self.deletecamurl = 'http://127.0.0.1:8000/server/camera/delete/'
         # self.getcamstateurl = 'http://127.0.0.1:8000/server/camera/stateinfo'
         # self.getcammodeurl = 'http://127.0.0.1:8000/server/camera/modeinfo'
+        # self.changemodeurl = 'http://127.0.0.1:8000/server/camera/setmode'
 
 
         self.loadCamera()
@@ -101,9 +103,6 @@ class sendService:
 
     def on_close(self, ws, close_status_code, close_msg):
         pass
-        # print("[SendService] 不正常關閉Box訊號! 清除連線...")
-        # for name in self.CameraModeList.keys():
-        #     self.cleanConnection(name)
 
     def on_open(self, ws):
         print("[SendService] 與Server連接成功！ 開啟傳送通道...")
@@ -233,8 +232,19 @@ class sendService:
         else:
             raise Exception(f'[SendService] 與伺服器溝通「開始」失敗! Status.code:{r.status_code}\n Reason: {r.text}')
 
-    def changeCameraMode(self, name, changed_mode):
-        pass
+    def changeCameraMode(self, name, mode):
+        print(f'[SendService] 傳送更換模式資料至伺服器.....')
+        # request
+        data = {
+            "name": name,
+            "mode": mode,
+        }
+        r = requests.post(url=self.changemodeurl, json=data)
+        if r.status_code == 200:
+            print(f'[SendService] 伺服器回傳結果：{r.text}')
+            self.CameraModeList[name] = mode
+        else:
+            raise Exception(f'[SendService] 與伺服器溝通「更換伺服器」失敗! Status.code:{r.status_code}\n\n Reason: {r.text}')
 
     def cleanConnection(self, name):
         self.cleaning = True

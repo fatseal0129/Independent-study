@@ -50,37 +50,6 @@ class DetectManager:
 
         self.rtmpUrl = 'rtsp://localhost:8554/stream/'
 
-        # self.command = ['ffmpeg',
-        #                 '-y',
-        #                 '-f', 'rawvideo',
-        #                 '-vcodec', 'rawvideo',
-        #                 '-pix_fmt', 'bgr24',
-        #                 '-s', '1280x720',
-        #                 '-r', "30",
-        #                 '-i', '-',
-        #                 '-c:v', 'libx264',
-        #                 '-pix_fmt', 'yuv420p',
-        #                 '-preset', 'ultrafast',
-        #                 '-f', 'rtsp',
-        #                 '-rtsp_transport', 'tcp',
-        #                 self.rtmpUrl]
-
-
-
-        # command = ['ffmpeg',
-        #            '-y',
-        #            '-f', 'rawvideo',
-        #            '-vcodec', 'rawvideo',
-        #            '-pix_fmt', 'bgr24',
-        #            '-s', '1280*720',  # 根据输入视频尺寸填写
-        #            '-r', '25',
-        #            '-i', '-',
-        #            '-c:v', 'h264',
-        #            '-pix_fmt', 'yuv420p',
-        #            '-preset', 'ultrafast',
-        #            '-f', 'flv',
-        #            rtmp]
-
         # 進行Cam刷新
         self.reflashingCamData()
 
@@ -125,6 +94,21 @@ class DetectManager:
                 # proc = sp.Popen(self.command, shell=False, stdin=sp.PIPE)
                 # self.pushProcess[name] = proc
         self.isReflashing = False
+
+    def reflashingCamMode(self):
+        """
+        刷新Cam資料 - 模組
+        :return:
+        """
+        print(f'[DetectService] 偵測攝影機更換模式需求, 刷新中...')
+        self.isReflashing = True
+        cammodes = DB.getAllCamName_with_Mode()
+        for modes in cammodes:
+            name = modes['name']
+            mode = modes['mode']
+            self.CameraModeList[name] = mode
+        self.isReflashing = False
+        print(f'[DetectService] 刷新成功！')
 
     def addDetectCam(self, name, mode, status):
         """

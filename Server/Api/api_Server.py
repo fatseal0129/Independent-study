@@ -9,7 +9,7 @@ from fastapi.responses import FileResponse
 from websockets.exceptions import ConnectionClosed
 import uvicorn
 from Server.Service import DetectManager, FileManager, DB
-from Server.Api.model import CameraInfo, MemberInfo, CameraStateInfo
+from Server.Api.model import CameraInfo, MemberInfo, CameraStateInfo, CameraModeInfo
 from typing import Annotated
 import cv2
 
@@ -54,21 +54,20 @@ async def getCameraState():
     info = DB.getAllCamInfo()
     return info
 
-
-
-
-
-
-
-
 # 設置攝影機模式
-@app.get('/server/camera/setmode/{mode}')
-async def setCameraMode(mode: str):
-    pass
-
-
-
-
+@app.post('/server/camera/setmode')
+async def setCameraMode(info: CameraModeInfo):
+    cam_name = info.name
+    cam_mode = info.mode
+    try:
+        if DetectManager.isProcessTerminate(cam_name):
+            return {'message': 'procHasBeenKill'}
+        if DB.changeCameraMode(cam_name, cam_mode):
+            DetectManager.reflashingCamMode()
+            return {'message': 'success'}
+        return {'message': 'fail'}
+    except KeyError as e:
+        return {'message': f'{cam_name} Not Found!'}
 
 # 取得執行序
 @app.post('/server/camera/getproc/{name}')
